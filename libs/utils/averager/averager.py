@@ -3,7 +3,6 @@
 This class is used to average the value of a set of points.
 """
 
-
 __author__ = ["Danh Doan", "Nguyen Tran", "Hung Vo"]
 __email__ = [
     "danh.doan@enouvo.com",

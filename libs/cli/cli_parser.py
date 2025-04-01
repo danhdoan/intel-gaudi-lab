@@ -23,6 +23,7 @@ def get_args():
     Returns
     -------
     (object) : parsed CLI arguments
+
     """
     parser = argparse.ArgumentParser()
 

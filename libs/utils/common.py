@@ -15,7 +15,6 @@ __status__ = "development"
 import inspect
 import json
 import logging
-from typing import Dict, Optional
 
 import yaml
 
@@ -39,6 +38,7 @@ def dbg(*args):
     Args:
     ----
     args (obj) : packed list of values to debug
+
     """
     caller = inspect.stack()[1]
     caller_module = inspect.getmodule(caller[0]).__name__
@@ -61,6 +61,7 @@ def print_list(lst):
     Args:
     ----
     lst (List[obj]) : list of object to print
+
     """
     for i, item in enumerate(lst):
         logging.debug("%d %s", i + 1, item)
@@ -80,6 +81,7 @@ def load_json(json_path, encoding="utf-8"):
     Returns:
     -------
     (obj) : data loaded from JSON file
+
     """
     data = None
     with open(json_path, encoding=encoding) as f:
@@ -100,6 +102,7 @@ def save_json(json_path, data, indent=2, ensure_ascii=False):
     data (Dict): content to serialize
     indent (Int): set default indentation
     ensure_ascii (Bool): set output content is as-is
+
     """
     with open(json_path, "w") as f:
         json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
@@ -108,7 +111,7 @@ def save_json(json_path, data, indent=2, ensure_ascii=False):
 # ======================================================================================
 
 
-def load_yaml(yaml_file: str, encoding="utf-8") -> Dict[str, Optional[str]]:
+def load_yaml(yaml_file: str, encoding="utf-8") -> dict[str, str | None]:
     """Load data from YAML file.
 
     Args:
@@ -119,6 +122,7 @@ def load_yaml(yaml_file: str, encoding="utf-8") -> Dict[str, Optional[str]]:
     Returns:
     -------
     data (Dict): data in key-value format
+
     """
     try:
         with open(yaml_file, encoding=encoding) as file:

@@ -1,6 +1,5 @@
 """Logger Utility."""
 
-
 __author__ = ["Danh Doan", "Nguyen Tran", "Hung Vo"]
 __email__ = [
     "danh.doan@enouvo.com",

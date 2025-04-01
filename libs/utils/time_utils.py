@@ -33,6 +33,7 @@ def tiktok(func):
     Returns:
     -------
     (object) : function after decorated
+
     """
 
     def inner(*args, **kwargs):
