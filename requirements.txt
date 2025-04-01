@@ -1,0 +1,26 @@
+# data processing deps
+numpy
+pandas
+
+# Python file formater and linter
+black
+ruff
+
+# pre-commit
+pre-commit
+
+# For reading YAML configuration
+PyYAML
+
+# For testing
+pytest
+pytest-benchmark
+
+# progress bar
+tqdm
+
+# For deps build
+setuptools
+wheel
+
+# other

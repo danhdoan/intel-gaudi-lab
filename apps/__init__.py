@@ -1,0 +1,1 @@
+"""Register for apps module."""
