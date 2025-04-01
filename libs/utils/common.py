@@ -9,16 +9,16 @@ __date__ = "2024/11/20"
 __status__ = "development"
 
 
-# ==============================================================================
+# ======================================================================================
 
-
-from typing import List, Dict, Optional
 
 import json
 import yaml
 
+from typing import Dict, List, Optional
 
-# ==============================================================================
+
+# ======================================================================================
 
 
 def load_json(json_path: str, encoding: str = "utf-8") -> List | Dict:
@@ -64,7 +64,7 @@ def save_json(
         json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
 
 
-# ==============================================================================
+# ======================================================================================
 
 
 def to_json_str(data: List | Dict, convert_to_str: bool = True) -> str:
@@ -90,7 +90,7 @@ def to_json_str(data: List | Dict, convert_to_str: bool = True) -> str:
     return json_str
 
 
-# ==============================================================================
+# ======================================================================================
 
 
 def print_json(data: List | Dict, convert_to_str: bool = True) -> None:
@@ -136,4 +136,4 @@ def load_yaml(yaml_file: str, encoding="utf-8") -> Dict[str, Optional[str]]:
         raise Exception(f"Error occured: {e}") from e
 
 
-# ==============================================================================
+# ======================================================================================
