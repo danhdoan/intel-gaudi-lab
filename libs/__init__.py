@@ -1,1 +1,1 @@
-"""Register for `libs` dependency."""
+"""Register for libs' modules."""

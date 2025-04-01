@@ -1,39 +1,85 @@
 """Common Utilities.
 
-Common Support Functions
+Common Support functions
 """
 
-__author__ = ["Danh Doan", "Nam Ho"]
-__email__ = ["danh.doan@enouvo.com", "nam.ho@enouvo.com"]
-__date__ = "2024/11/20"
+__author__ = "Danh Doan"
+__email__ = "danhdoancv@gmail.com"
+__date__ = "2020/04/19"
 __status__ = "development"
 
 
 # ======================================================================================
 
 
+import inspect
 import json
+import logging
+from typing import Dict, Optional
+
 import yaml
 
-from typing import Dict, List, Optional
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 # ======================================================================================
 
 
-def load_json(json_path: str, encoding: str = "utf-8") -> List | Dict:
+DEBUG_LENGTH = 75
+DEBUG_SEPERATOR = "="
+
+
+# ======================================================================================
+
+
+def dbg(*args):
+    """Debug by print values.
+
+    Args:
+    ----
+    args (obj) : packed list of values to debug
+    """
+    caller = inspect.stack()[1]
+    caller_module = inspect.getmodule(caller[0]).__name__
+    caller_function, caller_line_number = caller.function, caller.lineno
+    dbg_prefix = f"[{caller_module}-{caller_function}:{caller_line_number}] "
+    logging.debug(dbg_prefix.ljust(DEBUG_LENGTH, DEBUG_SEPERATOR))
+
+    for arg in args:
+        if isinstance(arg, list):
+            print_list(arg)
+        else:
+            logging.debug(arg)
+
+    logging.debug("")
+
+
+def print_list(lst):
+    """Print items of a list.
+
+    Args:
+    ----
+    lst (List[obj]) : list of object to print
+    """
+    for i, item in enumerate(lst):
+        logging.debug("%d %s", i + 1, item)
+
+
+# ======================================================================================
+
+
+def load_json(json_path, encoding="utf-8"):
     """Load data from JSON file.
 
     Args:
     ----
-    json_path (str): Path to input JSON file
-    encoding (str): Type of encoding
-        (default: "uft-8")
+    json_path (str) : path to input JSON file
+    encoding (Str): type of encoding
 
     Returns:
     -------
-    data (List | Dist) : Data loaded from JSON file
-
+    (obj) : data loaded from JSON file
     """
     data = None
     with open(json_path, encoding=encoding) as f:
@@ -45,66 +91,18 @@ def load_json(json_path: str, encoding: str = "utf-8") -> List | Dict:
 # ======================================================================================
 
 
-def save_json(
-    json_path: str, data: Dict, indent: str = 2, ensure_ascii: bool = False
-) -> None:
+def save_json(json_path, data, indent=2, ensure_ascii=False):
     """Serialize data to JSON file.
 
     Args:
     ----
-    json_path (str): Path of output JSON file
-    data (Dict): Content to serialize
-    indent (int): Set default indentation
-        (default: 2)
-    ensure_ascii (bool): Set output content as it is
-        (default: False)
-
+    json_path (Str): path of output JSON file
+    data (Dict): content to serialize
+    indent (Int): set default indentation
+    ensure_ascii (Bool): set output content is as-is
     """
     with open(json_path, "w") as f:
         json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
-
-
-# ======================================================================================
-
-
-def to_json_str(data: List | Dict, convert_to_str: bool = True) -> str:
-    """Serialize JSON style data to string.
-
-    Args:
-    ----
-    data (List | Dict): JSON style data
-    convert_to_str (bool): Option to stringify data values to readable string
-        (eg. datetime.date(yyyy, mm, dd) -> "yyyy-mm-dd")
-        (default: True)
-
-    Returns:
-    -------
-    json_str (str): JSON style string
-
-    """
-    if convert_to_str:
-        json_str = json.dumps(data, indent=2, default=str)
-    else:
-        json_str = json.dumps(data, indent=2)
-
-    return json_str
-
-
-# ======================================================================================
-
-
-def print_json(data: List | Dict, convert_to_str: bool = True) -> None:
-    """Prettify and print JSON style data.
-
-    Args:
-    ----
-    data (List | Dict): JSON style data
-    convert_to_str (bool): Option to stringify data values to readable string
-        (eg. datetime.date(yyyy, mm, dd) -> "yyyy-mm-dd")
-        (default: True)
-
-    """
-    print(to_json_str(data, convert_to_str))
 
 
 # ======================================================================================
@@ -115,14 +113,12 @@ def load_yaml(yaml_file: str, encoding="utf-8") -> Dict[str, Optional[str]]:
 
     Args:
     ----
-    yaml_file (str) : Path to YAML file
-    encoding (str) : Type of encoding
-        (default: "utf-8")
+    yaml_file (str) : path to YAML file
+    encoding (str) : type of encoding method
 
     Returns:
     -------
-    data (Dict[str, Optional[str]]): Data in key-value format
-
+    data (Dict): data in key-value format
     """
     try:
         with open(yaml_file, encoding=encoding) as file:

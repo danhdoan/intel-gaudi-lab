@@ -6,17 +6,16 @@ endef
 
 # ==============================================================================
 
-all: clean format lint
+all: clean format lint test
 
 # ==============================================================================
 
 clean:
-	$(call show_header, "Cleaning Source Code...")
-	find . -type f -name "*.pyc" -exec rm -f {} +
+	$(call show_header, "Cleaning Source code...")
+	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".ipynb_checkpoints" -exec rm -rf {} +
-	find . -type d -name ".DS_Store" -exec rm -rf {} +
-	find . -type f -name ".DS_Store" -exec rm -f {} +
+	find . -type f -name ".DS_Store" -delete
 	rm -rf temp/*
 
 # ==============================================================================
@@ -35,6 +34,6 @@ format:
 
 lint:
 	$(call show_header, "Linting Source Code...")
-	ruff check --fix libs apps *.py
+	ruff --fix .
 
 # ==============================================================================

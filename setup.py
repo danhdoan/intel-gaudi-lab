@@ -19,8 +19,8 @@ setup(
     name="libs",
     version="1.0.0",
     description="Internal Module for Development",
-    author=["Danh Doan", "Nam Ho"],
-    author_email=["danh.doan@enouvo.com", "nam.ho@enouvo.com"],
+    author="Enouvo-AI",
+    author_email="",
     packages=find_packages(),
     setup_requires=["setuptools", "wheel"],
 )

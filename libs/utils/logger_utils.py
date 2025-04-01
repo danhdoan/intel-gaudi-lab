@@ -1,10 +1,11 @@
 """Logger Utility."""
 
+
 __author__ = ["Danh Doan", "Nguyen Tran", "Hung Vo"]
 __email__ = [
     "danh.doan@enouvo.com",
-    "nguyen.tran@enouvo.com",
-    "hung.vo@enouvo.com",
+    "nguyen.tran@team.enouvo.com",
+    "hung.vo@team.enouvo.com",
 ]
 __date__ = "2023/02/28"
 __status__ = "development"
