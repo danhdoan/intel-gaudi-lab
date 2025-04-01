@@ -4,27 +4,30 @@
 # ==============================================================================
 
 
-VENV_NAME=.venv
+HABANALABS_VIRTUAL_DIR=.venv
 REQUIREMENT_FILE=requirements.txt
-
+GC_KERNEL_PATH=/usr/lib/habanalabs/libtpc_kernels.so
 
 # ==============================================================================
 
 
-if [ ! -d ${VENV_NAME} ]
+if [ ! -d ${HABANALABS_VIRTUAL_DIR} ]
 then
 	echo "Virtual environment is setting up..."
 
-  # install `uv`
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  uv python install 3.10 # use 3.10 as default Python version
-  uv venv ${VENV_NAME} --python 3.10
+  # Install Habanalabs Environment
+  wget -nv https://vault.habana.ai/artifactory/gaudi-installer/1.20.1/habanalabs-installer.sh
+  chmod +x habanalabs-installer.sh
 
-  uv add -r ${REQUIREMENT_FILE}
-	echo "Virtual environment setup done! - Name:" ${VENV_NAME}
+  ./habanalabs-installer.sh install --type base --venv
+
+  source ${HABANALABS_VIRTUAL_DIR}/bin/activate
+
+  pip install -r ${REQUIREMENT_FILE}
+	echo "Virtual environment setup done! - Name:" ${HABANALABS_VIRTUAL_DIR}
 fi
 
-source ${VENV_NAME}/bin/activate
+source ${HABANALABS_VIRTUAL_DIR}/bin/activate
 
 echo "Virtual environment activated!"
 
