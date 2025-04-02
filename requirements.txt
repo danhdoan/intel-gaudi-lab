@@ -24,3 +24,12 @@ setuptools
 wheel
 
 # other
+
+# For optimum habana
+eager
+optimum[habana]
+
+# For Stable Diffusion
+opencv-python
+compel
+sentencepiece
