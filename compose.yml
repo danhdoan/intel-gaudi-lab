@@ -10,7 +10,8 @@ services:
       HABANA_VISIBLE_DEVICES: all
       OMPI_MCA_btl_vader_single_copy_mechanism: none
     volumes:
-      - ./:/${WORKING_DIR}/
+      - ./:/gaudi_lab/
+      - ./models/:/root/.cache/huggingface/hub
     cap_add:
       - sys_nice
     network_mode: host
@@ -20,3 +21,4 @@ services:
 
 volumes:
   .:
+  models:

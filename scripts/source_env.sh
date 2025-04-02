@@ -4,27 +4,34 @@
 # ==============================================================================
 
 
-VENV_NAME=.venv
-REQUIREMENT_FILE=requirements.txt
+VENV_NAME=".venv"
+REQUIREMENT_FILE="requirements.txt"
 
 
 # ==============================================================================
 
 
-if [ ! -d ${VENV_NAME} ]
+if [ ! -d "${VENV_NAME}" ]
 then
 	echo "Virtual environment is setting up..."
 
-  # install `uv`
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  uv python install 3.10 # use 3.10 as default Python version
-  uv venv ${VENV_NAME} --python 3.10
+  # Install `uv` if not available
+  if ! command -v uv &> /dev/null; then
+      echo "Installing uv..."
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
 
-  uv add -r ${REQUIREMENT_FILE}
-	echo "Virtual environment setup done! - Name:" ${VENV_NAME}
+  # Install Python 3.10 using `uv` (only if not already installed)
+  if ! uv python list | grep -q "3.10"; then
+      uv python install 3.10
+  fi
+  uv venv "${VENV_NAME}" --python 3.10
+
+  uv add -r "${REQUIREMENT_FILE}"
+	echo "Virtual environment setup done! - Name:" "${VENV_NAME}"
 fi
 
-source ${VENV_NAME}/bin/activate
+source "${VENV_NAME}"/bin/activate
 
 echo "Virtual environment activated!"
 

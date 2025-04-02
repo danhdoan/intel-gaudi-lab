@@ -1,5 +1,5 @@
 # data processing deps
-numpy
+numpy<2
 pandas
 
 # Python file formater and linter
@@ -24,3 +24,12 @@ setuptools
 wheel
 
 # other
+
+# For optimum habana
+eager
+optimum[habana]
+
+# For Stable Diffusion
+opencv-python
+compel
+sentencepiece
