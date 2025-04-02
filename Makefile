@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+include .env
+
 define show_header
 	@echo "============================================================"
 	@echo $(1)
@@ -35,5 +38,34 @@ format:
 lint:
 	$(call show_header, "Linting Source Code...")
 	ruff --fix .
+
+# ==============================================================================
+
+# * DOCKER COMMANDS *
+
+.PHONY: up
+up:
+	@if [ ! -f .env ]; then \
+		echo "WARNING: .env file does not exist! 'example.env' copied to '.env'. Please update the configurations in the .env file running this target."; \
+		cp example.env .env; \
+        exit 1; \
+	fi
+	docker compose up -d;
+
+.PHONY: down
+down:
+	docker compose down -v
+	@if [[ "$(docker ps -q -f name=${DOCKER_CONTAINER})" ]]; then \
+		echo "Terminating running container..."; \
+		docker rm ${DOCKER_CONTAINER}; \
+	fi
+
+.PHONY: stop
+stop:
+	docker compose stop
+
+.PHONY: connect
+connect:
+	docker exec -it ${DOCKER_CONTAINER} bash
 
 # ==============================================================================

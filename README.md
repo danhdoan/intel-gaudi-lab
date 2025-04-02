@@ -5,7 +5,29 @@ Experiments and optimizations with Intel Gaudi for AI training and inference.
 - TBD
 
 ## II. Prerequisites
-1. Prepare Python virtual environment for developing:
+1. (Recommended) Prepare Docker Container for development:
+    - Duplicate `example.env` to `.env` and edit the configurations
+        - `DOCKER_CONTAINER` - container name
+        - `WORKING_DIR` - working directory inside the container
+    - Run following command to create the container for `habana_frameworks` service:
+
+        ```bash
+        make up
+        ```
+
+    - Run following command to connect to the booted container:
+
+        ```bash
+        make connect
+        ```
+
+    - When exited, run following command to stop and remove the created container:
+
+        ```bash
+        make down
+        ```
+
+2. Prepare Python virtual environment for development:
     - Run following command to activate the virtual environment for this project:
 
         ```bash
@@ -16,10 +38,10 @@ Experiments and optimizations with Intel Gaudi for AI training and inference.
 
         ```bash
         source .venv/bin/activate
-        pip install -r requirements.txt
+        uv add -r requirements.txt
         ```
 
-2. Install `pre-commit`, which will run on every commit to identify simple issues before submission to code review:
+2. (Optional) Install `pre-commit`, which will run on every commit to identify simple issues before submission to code review:
 
     ```bash
     pre-commit install
