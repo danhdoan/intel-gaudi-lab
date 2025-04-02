@@ -1,14 +1,16 @@
 services:
-  habana:
-    container_name: habana
+  habana_frameworks:
+    container_name: ${DOCKER_CONTAINER}
     image: vault.habana.ai/gaudi-docker/1.20.1/ubuntu22.04/habanalabs/pytorch-installer-2.6.0:latest
     runtime: habana
-    working_dir: /gaudi_lab
+    env_file:
+      - .env
+    working_dir: /${WORKING_DIR}
     environment:
       HABANA_VISIBLE_DEVICES: all
       OMPI_MCA_btl_vader_single_copy_mechanism: none
     volumes:
-      - ./:/gaudi_lab/
+      - ./:/${WORKING_DIR}/
     cap_add:
       - sys_nice
     network_mode: host
