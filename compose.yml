@@ -1,5 +1,5 @@
 services:
-  habana_fw:
+  habana_frameworks:
     container_name: ${DOCKER_CONTAINER}
     image: vault.habana.ai/gaudi-docker/1.20.1/ubuntu22.04/habanalabs/pytorch-installer-2.6.0:latest
     runtime: habana

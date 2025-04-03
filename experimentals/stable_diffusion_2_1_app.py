@@ -4,6 +4,10 @@ import torch
 from optimum.habana import GaudiConfig
 from optimum.habana.diffusers import GaudiDDIMScheduler, GaudiStableDiffusionPipeline
 from optimum.habana.utils import set_seed
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+from typing import Optional
 
 import base64
 from io import BytesIO
@@ -13,7 +17,18 @@ app = FastAPI()
 
 # Initialize pipeline globally
 pipe = None
+class GenerateRequest(BaseModel):
+    prompt: str
+    negative_prompt: Optional[str] = None
+    num_inference_steps: int
+    width: int
+    height: int
+    batch_size: int
+    guidance_scale: float
+    seed: int
 
+class GenerateResponse(BaseModel):
+    image: str  # URL or Base64-encoded image data
 
 #====================================================================
 @app.on_event("startup")
@@ -32,8 +47,8 @@ async def startup_event():
         use_hpu_graphs=True,
         gaudi_config="Habana/stable-diffusion-2",
     )
-    pipe(prompt="test", num_inference_steps=30).images[0]
-    pipe(prompt="test", num_inference_steps=30).images[0]
+    # pipe(prompt="test", num_inference_steps=30).images[0]
+    # pipe(prompt="test", num_inference_steps=30).images[0]
 
 #====================================================================
 @app.get("/health")
@@ -41,16 +56,9 @@ async def health_check():
     return {"status": "healthy"}
 
 #====================================================================
-@app.post("/generate")
+@app.post("/generate",response_model=GenerateResponse)
 async def generate_response(
-    prompt: str,
-    negative_prompt: str | None = None,
-    num_inference_steps: int = 30,
-    width: int = 512,
-    height: int = 512,
-    batch_size: int = 1,
-    guidance_scale: float = 7.5,
-    seed: int = 42,
+    request:GenerateRequest,
 ):
     """
     Generate an image based on the provided prompt.
@@ -63,25 +71,33 @@ async def generate_response(
     global pipe
 
     # Set seed
-    set_seed(seed)
+    set_seed(request.seed)
     # Set the generator for reproducibility
+    image = pipe(
+            prompt=request.prompt,
+            negative_prompt=request.negative_prompt,
+            num_inference_steps=request.num_inference_steps,
+            height=request.height,
+            width=request.width,
+            batch_size=request.batch_size,
+            guidance_scale=request.guidance_scale,
+        ).images[0]
 
-    image = (
-        pipe(
-            prompt,
-            negative_prompt=negative_prompt,
-            num_inference_steps=num_inference_steps,
-            height=height,
-            width=width,
-            batch_size=batch_size,
-            guidance_scale=guidance_scale,
-        ).images[0],
-    )
     buffered = BytesIO()
     image.save(buffered, format="PNG")
 
     img_str = base64.b64encode(buffered.getvalue()).decode()
-    return {"message": "Image generated successfully", "image": img_str}
+    return GenerateResponse(image=img_str)
+    # return {"message":"..."}
+
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
+@app.get("/")
+async def root():
+    """
+    Serve the index.html file.
+    """
+    with open(os.path.join("public", "index.html"), "r") as file:
+        return HTMLResponse(content=file.read())
 
 #====================================================================
 if __name__ == "__main__":
