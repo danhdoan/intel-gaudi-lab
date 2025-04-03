@@ -9,27 +9,30 @@ ruff
 # pre-commit
 pre-commit
 
-# For reading YAML configuration
+# for reading YAML configuration
 PyYAML
 
-# For testing
+# for testing
 pytest
 pytest-benchmark
 
 # progress bar
 tqdm
 
-# For deps build
+# for deps build
 setuptools
 wheel
 
-# other
+# for optimum-habana
+optimum-habana @ git+https://github.com/huggingface/optimum-habana.git
+huggingface_hub[hf_xet]
 
-# For optimum habana
-eager
-optimum[habana]
+# for DeepSpeed
+deepspeed @ git+https://github.com/HabanaAI/DeepSpeed.git@1.20.0
 
-# For Stable Diffusion
+# for Stable Diffusion
 opencv-python
 compel
 sentencepiece
+
+# other
