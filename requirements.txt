@@ -35,4 +35,6 @@ opencv-python
 compel
 sentencepiece
 
-# other
+# For Web-Development
+fastapi
+uvicorn
