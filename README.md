@@ -50,9 +50,3 @@ Experiments and optimizations with Intel Gaudi for AI training and inference.
     ```bash
     pre-commit run --all-files
     ```
-## III.Run Server
-1. Run following command to start the server:
-
-    ```bash
-    make dev
-    ```
