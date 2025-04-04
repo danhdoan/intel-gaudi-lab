@@ -69,3 +69,9 @@ connect:
 	docker exec -it ${DOCKER_CONTAINER} bash
 
 # ==============================================================================
+
+
+#  * WEB DEPLOYMENT COMMANDS*
+.PHONY: dev
+dev:
+	python experimentals/stable_diffusion_2_1_app.py
