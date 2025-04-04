@@ -37,7 +37,7 @@ format:
 
 lint:
 	$(call show_header, "Linting Source Code...")
-	ruff --fix .
+	ruff check --fix .
 
 # ==============================================================================
 

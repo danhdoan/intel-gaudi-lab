@@ -9,12 +9,12 @@ __date__ = "2025/04/04"
 __status__ = "development"
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 import argparse
 
-# ======================================================================================
+# ==============================================================================
 
 
 def parse_args():
@@ -29,7 +29,7 @@ def parse_args():
 
     parser.add_argument(
         "--model_name_or_path",
-        default="models/stable-diffusion-xl-base-1.0",
+        default="stabilityai/stable-diffusion-xl-base-1.0",
         type=str,
         help="Path to pre-trained model",
     )
@@ -55,6 +55,12 @@ def parse_args():
     )
     # Pipeline arguments
     parser.add_argument(
+        "--prompts_file",
+        type=str,
+        default=None,
+        help="The file with prompts (for large number of images generation).",
+    )
+    parser.add_argument(
         "--prompts",
         type=str,
         nargs="*",
@@ -66,7 +72,8 @@ def parse_args():
         type=str,
         nargs="*",
         default=None,
-        help="The second prompt or prompts to guide the image generation (applicable to SDXL).",
+        help="The second prompt or prompts to guide the image generation \
+            (applicable to SDXL).",
     )
     parser.add_argument(
         "--num_images_per_prompt",
@@ -84,20 +91,23 @@ def parse_args():
         "--height",
         type=int,
         default=0,
-        help="The height in pixels of the generated images (0=default from model config).",
+        help="The height in pixels of the generated images \
+            (0=default from model config).",
     )
     parser.add_argument(
         "--width",
         type=int,
         default=0,
-        help="The width in pixels of the generated images (0=default from model config).",
+        help="The width in pixels of the generated images \
+            (0=default from model config).",
     )
     parser.add_argument(
         "--num_inference_steps",
         type=int,
         default=50,
         help=(
-            "The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense"
+            "The number of denoising steps. More denoising steps \
+                usually lead to a higher quality image at the expense"
             " of slower inference."
         ),
     )
@@ -106,8 +116,11 @@ def parse_args():
         type=float,
         default=7.5,
         help=(
-            "Guidance scale as defined in [Classifier-Free Diffusion Guidance](https://arxiv.org/abs/2207.12598)."
-            " Higher guidance scale encourages to generate images that are closely linked to the text `prompt`,"
+            "Guidance scale as defined in \
+                [Classifier-Free Diffusion Guidance]\
+                    (https://arxiv.org/abs/2207.12598)."
+            " Higher guidance scale encourages to generate images \
+                that are closely linked to the text `prompt`,"
             " usually at the expense of lower image quality."
         ),
     )
@@ -123,13 +136,15 @@ def parse_args():
         type=str,
         nargs="*",
         default=None,
-        help="The second prompt or prompts not to guide the image generation (applicable to SDXL and SD3).",
+        help="The second prompt or prompts not to guide the image generation \
+            (applicable to SDXL and SD3).",
     )
     parser.add_argument(
         "--eta",
         type=float,
         default=0.0,
-        help="Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502.",
+        help="Corresponds to parameter eta (η) in the DDIM paper: \
+            https://arxiv.org/abs/2010.02502.",
     )
     parser.add_argument(
         "--output_type",
@@ -160,7 +175,8 @@ def parse_args():
         type=str,
         default="Habana/stable-diffusion",
         help=(
-            "Name or path of the Gaudi configuration. In particular, it enables to specify how to apply Habana Mixed"
+            "Name or path of the Gaudi configuration. \
+                In particular, it enables to specify how to apply Habana Mixed"
             " Precision."
         ),
     )
@@ -174,14 +190,8 @@ def parse_args():
         action="store_true",
         help="Allow pyTorch to use reduced precision in the SDPA math backend",
     )
-    parser.add_argument(
-        "--prompts_file",
-        type=str,
-        default=None,
-        help="The file with prompts (for large number of images generation).",
-    )
 
     return parser.parse_args()
 
 
-# ======================================================================================
+# ==============================================================================

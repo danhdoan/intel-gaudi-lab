@@ -1,4 +1,4 @@
-"""Inference Application
+"""Inference Application.
 
 with Stable Diffusion XL Base 1.0 Model
 """
@@ -9,15 +9,12 @@ __date__ = "2025/04/04"
 __status__ = "development"
 
 
-# ======================================================================================
+# ==============================================================================
 
 
-import logging
-import sys
 from pathlib import Path
 
 import torch
-from experiments.get_sd_args import parse_args
 from optimum.habana.diffusers import (
     GaudiDDIMScheduler,
     GaudiEulerAncestralDiscreteScheduler,
@@ -26,23 +23,22 @@ from optimum.habana.diffusers import (
 )
 from optimum.habana.utils import set_seed
 
-# ======================================================================================
+from libs.cli.get_sd_args import parse_args
+from libs.utils import logger_utils
+from libs.utils.time_utils import tiktok
+
+# ==============================================================================
 
 
-# Setup logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logger.setLevel(logging.INFO)
+# Setup logger
+logger = logger_utils.setup_logger(name=__name__, log_dir="logs")
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 def get_scheduler(args, kwargs):
+    """Get scheduler."""
     if args.scheduler == "euler_discrete":
         scheduler = GaudiEulerDiscreteScheduler.from_pretrained(
             args.model_name_or_path, subfolder="scheduler", **kwargs
@@ -61,10 +57,11 @@ def get_scheduler(args, kwargs):
     return scheduler
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 def get_prompts(args, kwargs_call):
+    """Get prompts."""
     # If prompts file is specified override prompts from the file
     if args.prompts_file is not None:
         lines = []
@@ -78,10 +75,11 @@ def get_prompts(args, kwargs_call):
     kwargs_call["negative_prompt_2"] = args.negative_prompts_2
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 def get_pipeline(args, kwargs):
+    """Get pipeline."""
     pipeline = GaudiStableDiffusionXLPipeline.from_pretrained(
         args.model_name_or_path,
         **kwargs,
@@ -89,23 +87,36 @@ def get_pipeline(args, kwargs):
     return pipeline
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 def generate_outputs(args, pipeline, kwargs_call):
-    get_prompts(args, kwargs_call)
-
+    """Generate outputs."""
     # Generate Images using a Stable Diffusion pipeline
     outputs = pipeline(prompt=args.prompts, **kwargs_call)
 
     return outputs
 
 
-# ======================================================================================
+# ==============================================================================
+
+
+@tiktok
+def inference(args, pipeline, kwargs_call):
+    """Inference function."""
+    for _ in range(10):
+        _outputs = pipeline(prompt=args.prompts, **kwargs_call)
+
+
+# ==============================================================================
 
 
 def save_images(args, outputs):
-    # Save images in the specified directory if not None and if they are in PIL format
+    """Save pipeline's outputs.
+
+    Save images in the specified directory if not None and if they are in
+    PIL format.
+    """
     if args.image_save_dir is not None:
         if args.output_type == "pil":
             image_save_dir = Path(args.image_save_dir)
@@ -117,11 +128,14 @@ def save_images(args, outputs):
                 image.save(image_save_dir / f"image_{i + 1}.png")
         else:
             logger.warning(
-                "--output_type should be equal to 'pil' to save images in --image_save_dir."
+                """
+                --output_type should be equal to 'pil' to save images
+                in --image_save_dir.
+                """
             )
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 def app(args):
@@ -138,8 +152,8 @@ def app(args):
     }
 
     # Set the scheduler
-    kwargs = {"timestep_spacing": args.timestep_spacing}
-    scheduler = get_scheduler(args)
+    kwargs["timestep_spacing"] = args.timestep_spacing
+    scheduler = get_scheduler(args, kwargs)
     if scheduler is not None:
         kwargs["scheduler"] = scheduler
 
@@ -161,11 +175,16 @@ def app(args):
         kwargs_call["height"] = args.height
 
     pipeline = get_pipeline(args, kwargs)
+    get_prompts(args, kwargs_call)
     outputs = generate_outputs(args, pipeline, kwargs_call)
     save_images(args, outputs)
 
+    # * Performance benchmark: Inference Time x10 *
+    get_prompts(args, kwargs_call)
+    inference(args, pipeline, kwargs_call)
 
-# ======================================================================================
+
+# ==============================================================================
 
 
 def main():
@@ -174,11 +193,11 @@ def main():
     app(args)
 
 
-# ======================================================================================
+# ==============================================================================
 
 
 if __name__ == "__main__":
     main()
 
 
-# ======================================================================================
+# ==============================================================================
