@@ -14,11 +14,10 @@ __status__ = "development"
 
 import argparse
 
-
 # ======================================================================================
 
 
-def get_args():
+def parse_args():
     """Parse CLI arguments from user.
 
     Returns
@@ -34,18 +33,16 @@ def get_args():
         type=str,
         help="Path to pre-trained model",
     )
-
-    parser.add_argument(
-        "--controlnet_model_name_or_path",
-        default="lllyasviel/sd-controlnet-canny",
-        type=str,
-        help="Path to pre-trained model",
-    )
-
     parser.add_argument(
         "--scheduler",
         default="ddim",
-        choices=["default", "euler_discrete", "euler_ancestral_discrete", "ddim", "flow_match_euler_discrete"],
+        choices=[
+            "default",
+            "euler_discrete",
+            "euler_ancestral_discrete",
+            "ddim",
+            "flow_match_euler_discrete",
+        ],
         type=str,
         help="Name of scheduler",
     )
@@ -71,21 +68,18 @@ def get_args():
         default=None,
         help="The second prompt or prompts to guide the image generation (applicable to SDXL).",
     )
-    
-
     parser.add_argument(
-        "--control_preprocessing_type",
-        type=str,
-        default="canny",
-        help=(
-            "The type of preprocessing to apply on contol image. Only `canny` is supported."
-            " Defaults to `canny`. Set to unsupported value to disable preprocessing."
-        ),
+        "--num_images_per_prompt",
+        type=int,
+        default=1,
+        help="The number of images to generate per prompt.",
     )
     parser.add_argument(
-        "--num_images_per_prompt", type=int, default=1, help="The number of images to generate per prompt."
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The number of images in a batch.",
     )
-    parser.add_argument("--batch_size", type=int, default=1, help="The number of images in a batch.")
     parser.add_argument(
         "--height",
         type=int,
@@ -144,25 +138,22 @@ def get_args():
         default="pil",
         help="Whether to return PIL images or Numpy arrays.",
     )
-
-    parser.add_argument(
-        "--pipeline_save_dir",
-        type=str,
-        default=None,
-        help="The directory where the generation pipeline will be saved.",
-    )
     parser.add_argument(
         "--image_save_dir",
         type=str,
         default="./stable-diffusion-generated-images",
         help="The directory where images will be saved.",
     )
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for initialization.")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for initialization."
+    )
 
     # HPU-specific arguments
     parser.add_argument("--use_habana", action="store_true", help="Use HPU.")
     parser.add_argument(
-        "--use_hpu_graphs", action="store_true", help="Use HPU graphs on HPU. This should lead to faster generations."
+        "--use_hpu_graphs",
+        action="store_true",
+        help="Use HPU graphs on HPU. This should lead to faster generations.",
     )
     parser.add_argument(
         "--gaudi_config_name",
@@ -173,81 +164,21 @@ def get_args():
             " Precision."
         ),
     )
-    parser.add_argument("--bf16", action="store_true", help="Whether to perform generation in bf16 precision.")
     parser.add_argument(
-        "--sdp_on_bf16", action="store_true", help="Allow pyTorch to use reduced precision in the SDPA math backend"
-    )
-
-    parser.add_argument(
-        "--profiling_warmup_steps",
-        type=int,
-        default=0,
-        help="Number of steps to ignore for profiling.",
-    )
-    parser.add_argument(
-        "--profiling_steps",
-        type=int,
-        default=0,
-        help="Number of steps to capture for profiling.",
-    )
-    parser.add_argument("--distributed", action="store_true", help="Use distributed inference on multi-cards")
-    parser.add_argument(
-        "--unet_adapter_name_or_path",
-        default=None,
-        type=str,
-        help="Path to pre-trained model",
-    )
-    parser.add_argument(
-        "--text_encoder_adapter_name_or_path",
-        default=None,
-        type=str,
-        help="Path to pre-trained model",
-    )
-    parser.add_argument(
-        "--lora_id",
-        default=None,
-        type=str,
-        help="Path to lora id",
-    )
-    parser.add_argument(
-        "--use_cpu_rng",
+        "--bf16",
         action="store_true",
-        help="Enable deterministic generation using CPU Generator",
+        help="Whether to perform generation in bf16 precision.",
     )
     parser.add_argument(
-        "--use_compel",
+        "--sdp_on_bf16",
         action="store_true",
-        help="Use compel for prompt weighting",
-    )
-    parser.add_argument(
-        "--use_freeu",
-        action="store_true",
-        help="Use freeu for improving generation quality",
-    )
-    parser.add_argument(
-        "--use_zero_snr",
-        action="store_true",
-        help="Use rescale_betas_zero_snr for controlling image brightness",
-    )
-    parser.add_argument("--optimize", action="store_true", help="Use optimized pipeline.")
-    parser.add_argument(
-        "--quant_mode",
-        default="disable",
-        choices=["measure", "quantize", "quantize-mixed", "disable"],
-        type=str,
-        help="Quantization mode 'measure', 'quantize', 'quantize-mixed' or 'disable'",
+        help="Allow pyTorch to use reduced precision in the SDPA math backend",
     )
     parser.add_argument(
         "--prompts_file",
         type=str,
         default=None,
         help="The file with prompts (for large number of images generation).",
-    )
-    parser.add_argument(
-        "--lora_scale",
-        type=float,
-        default=None,
-        help="A lora scale that will be applied to all LoRA layers of the text encoder if LoRA layers are loaded.",
     )
 
     return parser.parse_args()
