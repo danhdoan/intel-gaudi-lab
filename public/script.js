@@ -41,7 +41,7 @@ document.getElementById("generateBtn").addEventListener("click", async function(
         image.onload = () => {
             image.classList.add("loaded");
         };
-        
+
     } catch (error) {
         console.error("Error:", error);
         alert("Error generating image!");
