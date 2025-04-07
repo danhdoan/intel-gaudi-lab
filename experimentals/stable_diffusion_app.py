@@ -11,7 +11,9 @@ from fastapi.staticfiles import StaticFiles
 from optimum.habana import utils as habana_utils
 from optimum.habana.diffusers import (
     GaudiDDIMScheduler,
+    GaudiStableDiffusion3Pipeline,
     GaudiStableDiffusionPipeline,
+    GaudiStableDiffusionXLPipeline,
 )
 from pydantic import BaseModel
 
@@ -78,11 +80,20 @@ async def startup_event():
 
     This function is called when the FastAPI application starts.
     """
-    model_name = "./models/stable-diffusion-xl-base-1.0"
+    model_name = "./models/stable-diffusion-2.1"
     scheduler = GaudiDDIMScheduler.from_pretrained(
         model_name, subfolder="scheduler"
     )
-    app.state.pipe = GaudiStableDiffusionPipeline.from_pretrained(
+
+    pipeline_mapping = {
+        "stable-diffusion-xl": GaudiStableDiffusionXLPipeline,
+        "stable-diffusion-3": GaudiStableDiffusion3Pipeline,
+    }
+    pipeline_class = next(
+        (cls for key, cls in pipeline_mapping.items() if key in model_name),
+        GaudiStableDiffusionPipeline,
+    )
+    app.state.pipe = pipeline_class.from_pretrained(
         model_name,
         scheduler=scheduler,
         use_habana=True,
@@ -125,6 +136,7 @@ async def generate_response(
         GenerateResponse: The response object containing the generated image.
 
     """
+    # start_time = time.time()
     habana_utils.set_seed(request.seed)
     list_base64 = []
     outputs = app.state.pipe(
@@ -138,7 +150,8 @@ async def generate_response(
         guidance_scale=request.guidance_scale,
     )
     images = outputs["images"]
-
+    # calculate time taken
+    # time_taken = time.time() - start_time
     for i in range(len(images)):
         buffered = BytesIO()
         images[i].save(buffered, format="PNG")
