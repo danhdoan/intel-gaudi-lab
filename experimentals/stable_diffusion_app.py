@@ -8,15 +8,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from macro import DIFFUSION_MODEL, MODEL_PATH_FOLDER
 from optimum.habana import utils as habana_utils
-from optimum.habana.diffusers import (
-    GaudiDDIMScheduler,
-    GaudiFlowMatchEulerDiscreteScheduler,
-    GaudiStableDiffusion3Pipeline,
-    GaudiStableDiffusionPipeline,
-    GaudiStableDiffusionXLPipeline,
-)
-from pydantic import BaseModel
+from stable_diffusion.pipeline_loader import load_pipeline
+from type import GenerateRequest, GenerateResponse
 
 # ====================================================================
 
@@ -29,114 +24,8 @@ app.state.pipe = None
 # ====================================================================
 
 
-class GenerateRequest(BaseModel):
-    """Request model for image generation.
-
-    Args:
-    ----
-        prompt (str): The text prompt to generate the image.
-        negative_prompt (str | None): The negative prompt
-        num_inference_steps (int): The number of inference steps to take.
-        width (int): The width of the generated image.
-        height (int): The height of the generated image.
-        num_images_per_prompt (int): The number of images to generate
-        batch_size (int): The number of images to generate in a batch.
-        guidance_scale (float): The scale for classifier-free guidance.
-        seed (int): The random seed for reproducibility.
-
-    """
-
-    prompt: str
-    negative_prompt: str | None = None
-    num_inference_steps: int = 30
-    width: int = 512
-    height: int = 512
-    num_images_per_prompt: int = 1
-    batch_size: int = 1
-    guidance_scale: float = 7.5
-    seed: int = 42
-
-
-# ====================================================================
-
-
-class GenerateResponse(BaseModel):
-    """Response model for image generation.
-
-    Args:
-    ----
-        image (str): The generated list of base64 encoded images.
-
-    """
-
-    image: list[str]
-
-
-# ====================================================================
-
-
-def load_scheduler(model_name: str):
-    """Load the scheduler based on the model name.
-
-    Args:
-    ----
-        model_name (str): The name of the model to load the scheduler for.
-
-    Returns:
-    -------
-        scheduler: The loaded scheduler.
-
-    """
-    scheduler_mapping = {
-        "stable-diffusion-3": GaudiFlowMatchEulerDiscreteScheduler,
-        "default": GaudiDDIMScheduler,
-    }
-    scheduler_class = next(
-        (
-            scheduler
-            for key, scheduler in scheduler_mapping.items()
-            if key in model_name
-        ),
-        scheduler_mapping["default"],
-    )
-    return scheduler_class.from_pretrained(model_name, subfolder="scheduler")
-
-
-# ====================================================================
-
-
-def load_pipeline(model_name: str):
-    """Load the pipeline based on the model name.
-
-    Args:
-    ----
-        model_name (str): The name of the model to load the pipeline for.
-
-    Returns:
-    -------
-        pipeline: The loaded pipeline.
-
-    """
-    pipeline_mapping = {
-        "stable-diffusion-xl": GaudiStableDiffusionXLPipeline,
-        "stable-diffusion-3": GaudiStableDiffusion3Pipeline,
-    }
-    pipeline_class = next(
-        (
-            model_type
-            for key, model_type in pipeline_mapping.items()
-            if key in model_name
-        ),
-        GaudiStableDiffusionPipeline,
-    )
-    return pipeline_class
-
-
-# ====================================================================
-
-
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """Load the default model and scheduler on startup.
 
     This function is called when the FastAPI application starts.
@@ -144,23 +33,15 @@ async def startup_event():
     directory and initializes the pipeline.
 
     """
-    model_name = "./models/stable-diffusion-xl-base-1.0"
-    scheduler = load_scheduler(model_name)
-    pipeline = load_pipeline(model_name)
-    app.state.pipe = pipeline.from_pretrained(
-        model_name,
-        scheduler=scheduler,
-        use_habana=True,
-        use_hpu_graphs=True,
-        gaudi_config="Habana/stable-diffusion",
-    )
+    model_name = f"{MODEL_PATH_FOLDER}/{DIFFUSION_MODEL[0]}"
+    app.state.pipe = load_pipeline(model_name)
 
 
 # ====================================================================
 
 
 @app.post("/change_model")
-async def change_model(model_name: str):
+async def change_model(model_name: str) -> dict:
     """Endpoint to change the model dynamically.
 
     Args:
@@ -179,29 +60,18 @@ async def change_model(model_name: str):
         dict: A dictionary indicating the status of the operation.
 
     """
-    allowed_models = [
-        "stable-diffusion-3-m-d",
-        "stable-diffusion-2.1",
-        "stable-diffusion-2-base",
-        "stable-diffusion-xl-base-1.0",
-    ]
-    if model_name not in allowed_models:
+    if model_name not in DIFFUSION_MODEL:
         return {
             "status": "error",
             "message": f"Model name {model_name} is not allowed. ",
         }
 
     try:
-        model_name = f"./models/{model_name}"
-        scheduler = load_scheduler(model_name)
-        pipeline = load_pipeline(model_name)
-        app.state.pipe = pipeline.from_pretrained(
-            model_name,
-            scheduler=scheduler,
-            use_habana=True,
-            use_hpu_graphs=True,
-            gaudi_config="Habana/stable-diffusion",
-        )
+        if app.state.pipe is not None:
+            del app.state.pipe
+        model_name = f"{MODEL_PATH_FOLDER}/{model_name}"
+
+        app.state.pipe = load_pipeline(model_name)
         return {
             "status": "success",
             "message": f"Model changed to {model_name}",
@@ -231,7 +101,7 @@ async def health_check():
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_response(
     request: GenerateRequest,
-):
+) -> GenerateResponse:
     """Generate an image based on the provided prompt.
 
     Args:
