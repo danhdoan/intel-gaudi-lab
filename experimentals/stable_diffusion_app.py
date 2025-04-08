@@ -8,12 +8,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from macro import DIFFUSION_MODEL, MODEL_PATH_FOLDER
 from optimum.habana import utils as habana_utils
-from optimum.habana.diffusers import (
-    GaudiDDIMScheduler,
-    GaudiStableDiffusionPipeline,
-)
-from pydantic import BaseModel
+from stable_diffusion.pipeline_loader import load_pipeline
+from type import GenerateRequest, GenerateResponse
 
 # ====================================================================
 
@@ -26,69 +24,60 @@ app.state.pipe = None
 # ====================================================================
 
 
-class GenerateRequest(BaseModel):
-    """Request model for image generation.
-
-    Args:
-    ----
-        prompt (str): The text prompt to generate the image.
-        negative_prompt (str | None): The negative prompt
-        num_inference_steps (int): The number of inference steps to take.
-        width (int): The width of the generated image.
-        height (int): The height of the generated image.
-        num_images_per_prompt (int): The number of images to generate
-        batch_size (int): The number of images to generate in a batch.
-        guidance_scale (float): The scale for classifier-free guidance.
-        seed (int): The random seed for reproducibility.
-
-    """
-
-    prompt: str
-    negative_prompt: str | None = None
-    num_inference_steps: int = 30
-    width: int = 512
-    height: int = 512
-    num_images_per_prompt: int = 1
-    batch_size: int = 1
-    guidance_scale: float = 7.5
-    seed: int = 42
-
-
-# ====================================================================
-
-
-class GenerateResponse(BaseModel):
-    """Response model for image generation.
-
-    Args:
-    ----
-        image (str): The generated list of base64 encoded images.
-
-    """
-
-    image: list[str]
-
-
-# ====================================================================
-
-
 @app.on_event("startup")
-async def startup_event():
-    """Load the model and scheduler on startup.
+async def startup_event() -> None:
+    """Load the default model and scheduler on startup.
 
     This function is called when the FastAPI application starts.
+    It loads the Stable Diffusion model from the specified
+    directory and initializes the pipeline.
+
     """
-    model_name = "./models/stable-diffusion-xl-base-1.0"
-    scheduler = GaudiDDIMScheduler.from_pretrained(
-        model_name, subfolder="scheduler"
-    )
-    app.state.pipe = GaudiStableDiffusionPipeline.from_pretrained(
-        model_name,
-        scheduler=scheduler,
-        use_habana=True,
-        use_hpu_graphs=True,
-        gaudi_config="Habana/stable-diffusion",
-    )
+    model_name = f"{MODEL_PATH_FOLDER}/{DIFFUSION_MODEL[0]}"
+    app.state.pipe = load_pipeline(model_name)
+
+
+# ====================================================================
+
+
+@app.post("/change_model")
+async def change_model(model_name: str) -> dict:
+    """Endpoint to change the model dynamically.
+
+    Args:
+    ----
+        model_name (str): The name of the new model.
+        The model name should be one of the allowed models.
+        Allowed models are:
+        - stable-diffusion-3-m-d
+        - stable-diffusion-2.1
+        - stable-diffusion-2-base
+        - stable-diffusion-xl-base-1.0
+        The model should be located in the "./models" directory.
+
+    Returns:
+    -------
+        dict: A dictionary indicating the status of the operation.
+
+    """
+    if model_name not in DIFFUSION_MODEL:
+        return {
+            "status": "error",
+            "message": f"Model name {model_name} is not allowed. ",
+        }
+
+    try:
+        if app.state.pipe is not None:
+            del app.state.pipe
+        model_name = f"{MODEL_PATH_FOLDER}/{model_name}"
+
+        app.state.pipe = load_pipeline(model_name)
+        return {
+            "status": "success",
+            "message": f"Model changed to {model_name}",
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ====================================================================
@@ -112,7 +101,7 @@ async def health_check():
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_response(
     request: GenerateRequest,
-):
+) -> GenerateResponse:
     """Generate an image based on the provided prompt.
 
     Args:
