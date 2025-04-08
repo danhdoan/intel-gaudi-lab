@@ -156,6 +156,9 @@ async def startup_event():
     )
 
 
+# ====================================================================
+
+
 @app.post("/change_model")
 async def change_model(model_name: str):
     """Endpoint to change the model dynamically.
