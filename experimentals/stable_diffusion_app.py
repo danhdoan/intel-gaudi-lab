@@ -29,12 +29,14 @@ app.state.pipe = None
 class GenerateRequest(BaseModel):
     """Request model for image generation.
 
-    Attributes:
+    Args:
+    ----
         prompt (str): The text prompt to generate the image.
         negative_prompt (str | None): The negative prompt
         num_inference_steps (int): The number of inference steps to take.
         width (int): The width of the generated image.
         height (int): The height of the generated image.
+        num_images_per_prompt (int): The number of images to generate
         batch_size (int): The number of images to generate in a batch.
         guidance_scale (float): The scale for classifier-free guidance.
         seed (int): The random seed for reproducibility.
@@ -46,6 +48,7 @@ class GenerateRequest(BaseModel):
     num_inference_steps: int = 30
     width: int = 512
     height: int = 512
+    num_images_per_prompt: int = 1
     batch_size: int = 1
     guidance_scale: float = 7.5
     seed: int = 42
@@ -57,12 +60,13 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     """Response model for image generation.
 
-    Attributes:
-        image (str): The generated image in Base64 format.
+    Args:
+    ----
+        image (str): The generated list of base64 encoded images.
 
     """
 
-    image: str  # Base64-encoded image data
+    image: list[str]
 
 
 # ====================================================================
@@ -74,7 +78,7 @@ async def startup_event():
 
     This function is called when the FastAPI application starts.
     """
-    model_name = "models/stable-diffusion-2.1"
+    model_name = "./models/stable-diffusion-xl-base-1.0"
     scheduler = GaudiDDIMScheduler.from_pretrained(
         model_name, subfolder="scheduler"
     )
@@ -83,16 +87,8 @@ async def startup_event():
         scheduler=scheduler,
         use_habana=True,
         use_hpu_graphs=True,
-        gaudi_config="Habana/stable-diffusion-2",
+        gaudi_config="Habana/stable-diffusion",
     )
-    app.state.pipe(
-        prompt="a beautiful landscape with mountains and a river",
-        num_inference_steps=30,
-    ).images[0]
-    app.state.pipe(
-        prompt="a magical forest with glowing mushrooms",
-        num_inference_steps=30,
-    ).images[0]
 
 
 # ====================================================================
@@ -102,7 +98,8 @@ async def startup_event():
 async def health_check():
     """Health check endpoint to verify the service is running.
 
-    Returns:
+    Returns
+    -------
         dict: A dictionary indicating the service status.
 
     """
@@ -128,24 +125,28 @@ async def generate_response(
         GenerateResponse: The response object containing the generated image.
 
     """
-    # Set seed
     habana_utils.set_seed(request.seed)
-    # Set the generator for reproducibility
-    image = app.state.pipe(
+    list_base64 = []
+    outputs = app.state.pipe(
         prompt=request.prompt,
         negative_prompt=request.negative_prompt,
         num_inference_steps=request.num_inference_steps,
         height=request.height,
         width=request.width,
+        num_images_per_prompt=request.num_images_per_prompt,
         batch_size=request.batch_size,
         guidance_scale=request.guidance_scale,
-    ).images[0]
+    )
+    images = outputs["images"]
 
-    buffered = BytesIO()
-    image.save(buffered, format="PNG")
+    for i in range(len(images)):
+        buffered = BytesIO()
+        images[i].save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        images[i] = img_str
+        list_base64.append(img_str)
 
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    return GenerateResponse(image=img_str)
+    return GenerateResponse(image=list_base64)
 
 
 # ====================================================================
