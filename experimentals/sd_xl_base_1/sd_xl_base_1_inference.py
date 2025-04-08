@@ -37,19 +37,19 @@ logger = logger_utils.setup_logger(name=__name__, log_dir="logs")
 # ==============================================================================
 
 
-def get_scheduler(args, kwargs):
+def get_scheduler(args, scheduler_kwargs):
     """Get scheduler."""
     if args.scheduler == "euler_discrete":
         scheduler = GaudiEulerDiscreteScheduler.from_pretrained(
-            args.model_name_or_path, subfolder="scheduler", **kwargs
+            args.model_name_or_path, subfolder="scheduler", **scheduler_kwargs
         )
     elif args.scheduler == "euler_ancestral_discrete":
         scheduler = GaudiEulerAncestralDiscreteScheduler.from_pretrained(
-            args.model_name_or_path, subfolder="scheduler", **kwargs
+            args.model_name_or_path, subfolder="scheduler", **scheduler_kwargs
         )
     elif args.scheduler == "ddim":
         scheduler = GaudiDDIMScheduler.from_pretrained(
-            args.model_name_or_path, subfolder="scheduler", **kwargs
+            args.model_name_or_path, subfolder="scheduler", **scheduler_kwargs
         )
     else:
         scheduler = None
@@ -143,6 +143,10 @@ def app(args):
     # Set RNG seed
     set_seed(args.seed)
 
+    # Set the scheduler
+    scheduler_kwargs = {"timestep_spacing": args.timestep_spacing}
+    scheduler = get_scheduler(args, scheduler_kwargs)
+
     # Set pipeline class instantiation options
     kwargs = {
         "use_habana": args.use_habana,
@@ -151,12 +155,8 @@ def app(args):
         "sdp_on_bf16": args.sdp_on_bf16,
     }
 
-    # Set the scheduler
-    kwargs["timestep_spacing"] = args.timestep_spacing
-    scheduler = get_scheduler(args, kwargs)
     if scheduler is not None:
         kwargs["scheduler"] = scheduler
-
     if args.bf16:
         kwargs["torch_dtype"] = torch.bfloat16
 
