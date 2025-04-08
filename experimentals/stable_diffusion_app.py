@@ -11,7 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from optimum.habana import utils as habana_utils
 from optimum.habana.diffusers import (
     GaudiDDIMScheduler,
+    GaudiFlowMatchEulerDiscreteScheduler,
+    GaudiStableDiffusion3Pipeline,
     GaudiStableDiffusionPipeline,
+    GaudiStableDiffusionXLPipeline,
 )
 from pydantic import BaseModel
 
@@ -77,12 +80,39 @@ async def startup_event():
     """Load the model and scheduler on startup.
 
     This function is called when the FastAPI application starts.
+    It loads the Stable Diffusion model from the specified
+    directory and initializes the pipeline.
+
     """
     model_name = "./models/stable-diffusion-xl-base-1.0"
-    scheduler = GaudiDDIMScheduler.from_pretrained(
+    scheduler_mapping = {
+        "stable-diffusion-3": GaudiFlowMatchEulerDiscreteScheduler,
+        "default": GaudiDDIMScheduler,
+    }
+    scheduler_class = next(
+        (
+            scheduler
+            for key, scheduler in scheduler_mapping.items()
+            if key in model_name
+        ),
+        scheduler_mapping["default"],
+    )
+    scheduler = scheduler_class.from_pretrained(
         model_name, subfolder="scheduler"
     )
-    app.state.pipe = GaudiStableDiffusionPipeline.from_pretrained(
+    pipeline_mapping = {
+        "stable-diffusion-xl": GaudiStableDiffusionXLPipeline,
+        "stable-diffusion-3": GaudiStableDiffusion3Pipeline,
+    }
+    pipeline_class = next(
+        (
+            model_type
+            for key, model_type in pipeline_mapping.items()
+            if key in model_name
+        ),
+        GaudiStableDiffusionPipeline,
+    )
+    app.state.pipe = pipeline_class.from_pretrained(
         model_name,
         scheduler=scheduler,
         use_habana=True,
