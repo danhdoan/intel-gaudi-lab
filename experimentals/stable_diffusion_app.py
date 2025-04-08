@@ -75,16 +75,18 @@ class GenerateResponse(BaseModel):
 # ====================================================================
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Load the model and scheduler on startup.
+def load_scheduler(model_name: str):
+    """Load the scheduler based on the model name.
 
-    This function is called when the FastAPI application starts.
-    It loads the Stable Diffusion model from the specified
-    directory and initializes the pipeline.
+    Args:
+    ----
+        model_name (str): The name of the model to load the scheduler for.
+
+    Returns:
+    -------
+        scheduler: The loaded scheduler.
 
     """
-    model_name = "./models/stable-diffusion-xl-base-1.0"
     scheduler_mapping = {
         "stable-diffusion-3": GaudiFlowMatchEulerDiscreteScheduler,
         "default": GaudiDDIMScheduler,
@@ -97,9 +99,24 @@ async def startup_event():
         ),
         scheduler_mapping["default"],
     )
-    scheduler = scheduler_class.from_pretrained(
-        model_name, subfolder="scheduler"
-    )
+    return scheduler_class.from_pretrained(model_name, subfolder="scheduler")
+
+
+# ====================================================================
+
+
+def load_pipeline(model_name: str):
+    """Load the pipeline based on the model name.
+
+    Args:
+    ----
+        model_name (str): The name of the model to load the pipeline for.
+
+    Returns:
+    -------
+        pipeline: The loaded pipeline.
+
+    """
     pipeline_mapping = {
         "stable-diffusion-xl": GaudiStableDiffusionXLPipeline,
         "stable-diffusion-3": GaudiStableDiffusion3Pipeline,
@@ -112,13 +129,82 @@ async def startup_event():
         ),
         GaudiStableDiffusionPipeline,
     )
-    app.state.pipe = pipeline_class.from_pretrained(
+    return pipeline_class
+
+
+# ====================================================================
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Load the default model and scheduler on startup.
+
+    This function is called when the FastAPI application starts.
+    It loads the Stable Diffusion model from the specified
+    directory and initializes the pipeline.
+
+    """
+    model_name = "./models/stable-diffusion-xl-base-1.0"
+    scheduler = load_scheduler(model_name)
+    pipeline = load_pipeline(model_name)
+    app.state.pipe = pipeline.from_pretrained(
         model_name,
         scheduler=scheduler,
         use_habana=True,
         use_hpu_graphs=True,
         gaudi_config="Habana/stable-diffusion",
     )
+
+
+@app.post("/change_model")
+async def change_model(model_name: str):
+    """Endpoint to change the model dynamically.
+
+    Args:
+    ----
+        model_name (str): The name of the new model.
+        The model name should be one of the allowed models.
+        Allowed models are:
+        - stable-diffusion-3-m-d
+        - stable-diffusion-2.1
+        - stable-diffusion-2-base
+        - stable-diffusion-xl-base-1.0
+        The model should be located in the "./models" directory.
+
+    Returns:
+    -------
+        dict: A dictionary indicating the status of the operation.
+
+    """
+    allowed_models = [
+        "stable-diffusion-3-m-d",
+        "stable-diffusion-2.1",
+        "stable-diffusion-2-base",
+        "stable-diffusion-xl-base-1.0",
+    ]
+    if model_name not in allowed_models:
+        return {
+            "status": "error",
+            "message": f"Model name {model_name} is not allowed. ",
+        }
+
+    try:
+        model_name = f"./models/{model_name}"
+        scheduler = load_scheduler(model_name)
+        pipeline = load_pipeline(model_name)
+        app.state.pipe = pipeline.from_pretrained(
+            model_name,
+            scheduler=scheduler,
+            use_habana=True,
+            use_hpu_graphs=True,
+            gaudi_config="Habana/stable-diffusion",
+        )
+        return {
+            "status": "success",
+            "message": f"Model changed to {model_name}",
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ====================================================================
