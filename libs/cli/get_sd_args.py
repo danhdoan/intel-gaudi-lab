@@ -190,6 +190,11 @@ def parse_args():
         action="store_true",
         help="Allow pyTorch to use reduced precision in the SDPA math backend",
     )
+    parser.add_argument(
+        "--distributed",
+        action="store_true",
+        help="Use distributed inference on multi-cards",
+    )
 
     return parser.parse_args()
 
