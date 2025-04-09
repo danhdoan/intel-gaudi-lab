@@ -1,11 +1,15 @@
 """Inference Application.
 
-with Stable Diffusion XL Base 1.0 Model
+with Stable Diffusion XL Base 1.0 Model in Single and Distributed HPU Mode
 """
 
-__author__ = ["Nicolas Howard", "Nguyen Tran"]
-__email__ = ["petit.nicolashoward@gmail.com", "nguyen.tran@enouvo.com"]
-__date__ = "2025/04/04"
+__author__ = ["Nicolas Howard", "Nguyen Tran", "Cuong Do"]
+__email__ = [
+    "petit.nicolashoward@gmail.com",
+    "nguyen.tran@enouvo.com",
+    "cuong.do@enouvo.com",
+]
+__date__ = "2025/04/09"
 __status__ = "development"
 
 
@@ -15,6 +19,7 @@ __status__ = "development"
 from pathlib import Path
 
 import torch
+from accelerate import PartialState
 from optimum.habana.diffusers import (
     GaudiDDIMScheduler,
     GaudiEulerAncestralDiscreteScheduler,
@@ -60,7 +65,7 @@ def get_scheduler(args, scheduler_kwargs):
 # ==============================================================================
 
 
-def get_prompts(args, kwargs_call):
+def get_prompts(args, kwargs_call, distributed_state=None):
     """Get prompts."""
     # If prompts file is specified override prompts from the file
     if args.prompts_file is not None:
@@ -70,9 +75,30 @@ def get_prompts(args, kwargs_call):
         lines = [line.strip() for line in lines]
         args.prompts = lines
 
-    kwargs_call["negative_prompt"] = args.negative_prompts
-    kwargs_call["prompt_2"] = args.prompts_2
-    kwargs_call["negative_prompt_2"] = args.negative_prompts_2
+    # Handle negative prompts
+    negative_prompts = args.negative_prompts
+    if distributed_state and negative_prompts is not None:
+        with distributed_state.split_between_processes(
+            negative_prompts
+        ) as negative_prompt:
+            negative_prompts = negative_prompt
+    kwargs_call["negative_prompt"] = negative_prompts
+
+    # Handle the second prompt
+    prompts_2 = args.prompts_2
+    if distributed_state and prompts_2 is not None:
+        with distributed_state.split_between_processes(prompts_2) as prompt_2:
+            prompts_2 = prompt_2
+    kwargs_call["prompt_2"] = prompts_2
+
+    # Handle the second negative prompt
+    negative_prompts_2 = args.negative_prompts_2
+    if distributed_state and negative_prompts_2 is not None:
+        with distributed_state.split_between_processes(
+            negative_prompts_2
+        ) as negative_prompt_2:
+            negative_prompts_2 = negative_prompt_2
+    kwargs_call["negative_prompt_2"] = negative_prompts_2
 
 
 # ==============================================================================
@@ -90,10 +116,14 @@ def get_pipeline(args, kwargs):
 # ==============================================================================
 
 
-def generate_outputs(args, pipeline, kwargs_call):
+def generate_outputs(args, pipeline, kwargs_call, distributed_state=None):
     """Generate outputs."""
     # Generate Images using a Stable Diffusion pipeline
-    outputs = pipeline(prompt=args.prompts, **kwargs_call)
+    if distributed_state:
+        with distributed_state.split_between_processes(args.prompts) as prompt:
+            outputs = pipeline(prompt=prompt, **kwargs_call)
+    else:
+        outputs = pipeline(prompt=args.prompts, **kwargs_call)
 
     return outputs
 
@@ -102,7 +132,7 @@ def generate_outputs(args, pipeline, kwargs_call):
 
 
 @tiktok
-def inference(args, pipeline, kwargs_call):
+def single_hpu_inference(args, pipeline, kwargs_call):
     """Inference function."""
     for _ in range(10):
         _outputs = pipeline(prompt=args.prompts, **kwargs_call)
@@ -111,7 +141,7 @@ def inference(args, pipeline, kwargs_call):
 # ==============================================================================
 
 
-def save_images(args, outputs):
+def save_images(args, outputs, distributed_state=None):
     """Save pipeline's outputs.
 
     Save images in the specified directory if not None and if they are in
@@ -120,6 +150,10 @@ def save_images(args, outputs):
     if args.image_save_dir is not None:
         if args.output_type == "pil":
             image_save_dir = Path(args.image_save_dir)
+            if distributed_state:
+                image_save_dir = Path(
+                    f"{image_save_dir}_{distributed_state.process_index}"
+                )
 
             image_save_dir.mkdir(parents=True, exist_ok=True)
             logger.info(f"Saving images in {image_save_dir.resolve()}...")
@@ -174,14 +208,20 @@ def app(args):
         kwargs_call["width"] = args.width
         kwargs_call["height"] = args.height
 
+    # Setup pipeline
     pipeline = get_pipeline(args, kwargs)
-    get_prompts(args, kwargs_call)
-    outputs = generate_outputs(args, pipeline, kwargs_call)
-    save_images(args, outputs)
 
-    # * Performance benchmark: Inference Time x10 *
+    # Setup single or distributed HPU inference
+    distributed_state = PartialState() if args.distributed else None
+    get_prompts(args, kwargs_call, distributed_state)
+
+    # Generate and save output images
+    outputs = generate_outputs(args, pipeline, kwargs_call, distributed_state)
+    save_images(args, outputs, distributed_state)
+
+    # * Single HPU Performance benchmark: Inference Time x10 *
     get_prompts(args, kwargs_call)
-    inference(args, pipeline, kwargs_call)
+    single_hpu_inference(args, pipeline, kwargs_call)
 
 
 # ==============================================================================

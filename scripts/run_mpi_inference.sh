@@ -16,4 +16,5 @@ python experimentals/distributed_runner/gaudi_spawn.py \
     --use_hpu_graphs \
     --gaudi_config Habana/stable-diffusion \
     --sdp_on_bf16 \
-    --bf16
+    --bf16 \
+    --distributed
