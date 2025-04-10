@@ -29,6 +29,7 @@ huggingface_hub[hf_xet]
 
 # for DeepSpeed
 deepspeed @ git+https://github.com/HabanaAI/DeepSpeed.git@1.20.0
+deepspeed[sd]
 
 # for Stable Diffusion
 opencv-python

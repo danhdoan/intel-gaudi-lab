@@ -190,6 +190,12 @@ def parse_args():
         action="store_true",
         help="Allow pyTorch to use reduced precision in the SDPA math backend",
     )
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        help="DeepSpeed local_rank argument for distributed running \
+            will be set when running with DeepSpeed",
+    )
 
     return parser.parse_args()
 

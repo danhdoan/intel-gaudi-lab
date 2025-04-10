@@ -3,8 +3,12 @@
 with Stable Diffusion XL Base 1.0 Model
 """
 
-__author__ = ["Nicolas Howard", "Nguyen Tran"]
-__email__ = ["petit.nicolashoward@gmail.com", "nguyen.tran@enouvo.com"]
+__author__ = ["Nicolas Howard", "Nguyen Tran", "Cuong Do"]
+__email__ = [
+    "petit.nicolashoward@gmail.com",
+    "nguyen.tran@enouvo.com",
+    "cuong.do@enouvo.com",
+]
 __date__ = "2025/04/04"
 __status__ = "development"
 
@@ -14,7 +18,9 @@ __status__ = "development"
 
 from pathlib import Path
 
+import deepspeed
 import torch
+from habana_frameworks.torch.distributed import hccl
 from optimum.habana.diffusers import (
     GaudiDDIMScheduler,
     GaudiEulerAncestralDiscreteScheduler,
@@ -78,12 +84,34 @@ def get_prompts(args, kwargs_call):
 # ==============================================================================
 
 
-def get_pipeline(args, kwargs):
+def get_pipeline(args, kwargs, world_size=4):
     """Get pipeline."""
+    import argparse
+
     pipeline = GaudiStableDiffusionXLPipeline.from_pretrained(
         args.model_name_or_path,
         **kwargs,
     )
+
+    # Initialize DeepSpeed process
+    hccl.initialize_distributed_hpu(
+        world_size=world_size, local_rank=args.local_rank
+    )
+    torch.distributed.init_process_group(backend="hccl")
+
+    # Integrate DeepSpeed with Model pipeline
+    deepspeed_parser = argparse.ArgumentParser()
+    deepspeed_args = deepspeed_parser.parse_args(args="")
+    deepspeed_args.device = "hpu"
+
+    pipeline = deepspeed.init_inference(
+        pipeline,
+        mp_size=world_size,
+        dtype=kwargs["torch_dtype"],
+        args=deepspeed_args,
+        replace_with_kernel_inject=True,
+    )
+
     return pipeline
 
 
