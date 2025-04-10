@@ -26,4 +26,4 @@ DIFFUSION_MODEL = [
     "stable-diffusion-xl-base-1.0",
 ]
 
-MODEL_PATH_FOLDER = "./models"
+MODEL_PATH_FOLDER = "../../models"
