@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Image Generator</h1>
+
+        <!-- Flexbox Layout for Config and Prompt Containers -->
+        <div class="flex-container">
+            <!-- Config Container -->
+            <div class="config-container">
+                <h2>Config</h2>
+
+                <!-- Seed Input -->
+                <div class="input-group">
+                    <label for="seed">Seed:</label>
+                    <input type="number" id="seed" placeholder="Seed" value="42" min="0">
+                </div>
+
+                <!-- Guidance Scale -->
+                <div class="input-group">
+                    <label for="guidance">Guidance Scale:</label>
+                    <input type="number" id="guidance" placeholder="Guidance Scale" value="7.5" step="0.1" min="1" max="20">
+                </div>
+
+                <!-- Number of Steps -->
+                <div class="input-group">
+                    <label for="steps">Steps:</label>
+                    <input type="number" id="steps" placeholder="Number of Steps" value="50" min="1" max="100">
+                </div>
+
+                <!-- Images per Prompt -->
+                <div class="input-group">
+                    <label for="numImages">Number Images:</label>
+                    <input type="number" id="numberImages" placeholder="n" value="1" min="1" max="8">
+                </div>
+
+                <!-- Batch Size -->
+                <div class="input-group">
+                    <label for="batchSize">Batch Size:</label>
+                    <input type="number" id="batchSize" placeholder="Batch Size must equal or smaller than Number Images" value="1" min="1" max="8">
+                </div>
+
+                <!-- Size Selection -->
+                <div class="input-group">
+                    <label for="size">Size:</label>
+                    <select id="size">
+                        <option value="512">512x512</option>
+                        <option value="768">768x768</option>
+                        <option value="1024">1024x1024</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Prompt Container -->
+            <div class="prompt-container">
+                <h2>Prompt</h2>
+                <textarea id="prompt" style="height: 158px;"></textarea>
+
+                <h2>Negative Prompt</h2>
+                <textarea id="negativePrompt" style="height: 125px;"></textarea>
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button id="generateBtn">Generate Image</button>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden">🔄 Generating...</div>
+
+        <!-- Display the Generated Images -->
+        <div id="imageContainer" class="image-container"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

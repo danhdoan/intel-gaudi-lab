@@ -8,10 +8,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from macro import DIFFUSION_MODEL, MODEL_PATH_FOLDER
 from optimum.habana import utils as habana_utils
-from stable_diffusion.pipeline_loader import load_pipeline
-from type import GenerateRequest, GenerateResponse
+from src.macro import DIFFUSION_MODEL, MODEL_PATH_FOLDER
+from src.pipeline_loader import load_pipeline
+from src.type import GenerateRequest, GenerateResponse
 
 # ====================================================================
 
@@ -141,13 +141,13 @@ async def generate_response(
 # ====================================================================
 
 
-app.mount("/", StaticFiles(directory="public", html=True), name="static")
+app.mount("/", StaticFiles(directory="src/public", html=True), name="static")
 
 
 @app.get("/")
 async def root():
     """Serve the index.html file."""
-    with open(os.path.join("public", "index.html")) as file:
+    with open(os.path.join("src/public/index.html", "index.html")) as file:
         return HTMLResponse(content=file.read())
 
 
