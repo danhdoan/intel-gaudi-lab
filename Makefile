@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-include .env
+-include .env
 
 define show_header
 	@echo "============================================================"
@@ -50,19 +50,31 @@ up:
 		cp example.env .env; \
         exit 1; \
 	fi
-	docker compose up -d;
+
+	@if [[ ! "$(docker images -q ${DOCKER_IMAGE_NAME})" ]]; then \
+		echo "Building '${DOCKER_IMAGE_NAME}' image for this application..."; \
+		docker build --build-arg WORKING_DIR=${WORKING_DIR} -t ${DOCKER_IMAGE_NAME} .; \
+	fi
+
+	docker compose up -d
+
+# ==============================================================================
 
 .PHONY: down
 down:
 	docker compose down -v
 	@if [[ "$(docker ps -q -f name=${DOCKER_CONTAINER})" ]]; then \
-		echo "Terminating running container..."; \
+		echo "Terminating ${DOCKER_CONTAINER} container..."; \
 		docker rm ${DOCKER_CONTAINER}; \
 	fi
+
+# ==============================================================================
 
 .PHONY: stop
 stop:
 	docker compose stop
+
+# ==============================================================================
 
 .PHONY: connect
 connect:
