@@ -2,9 +2,22 @@
 Experiments and optimizations with Intel Gaudi for AI training and inference.
 
 ## I. Introduction
-- TBD
+This project explores training and deployment of AI models on Intel Gaudi hardware with *habana* framework.
 
-## II. Prerequisites
+## II. Features
+- Image to Video Generation <br/>
+    🗓️ *Released:* April 11, 2025 <br/>
+    🔗 *Link:* [image_to_video](experimentals/image_to_video/run_img2vid.sh) <br/>
+    <img src="src/img2v_demo.gif" alt="Image to Video Demo" width="400"/> <br/>
+    <sub><i>Prompt: ""</i></sub>
+
+- Image Generation <br/>
+    🗓️ *Released:* April 08, 2025 <br/>
+    🔗 *Link:* [image_generation](experimentals/image_generation/README.md) <br/>
+    <img src="src/img_gen_demo.gif" alt="Image Generation Demo" width="400"/> <br/>
+    <sub><i>Prompt: "Sailing ship floating on sunflower garden painting by Van Gogh"</i></sub>
+
+## III. Installation
 1. (Recommended) Prepare Docker Container for development:
     - Duplicate `example.env` to `.env` and edit the configurations
         - `DOCKER_CONTAINER` - container name
