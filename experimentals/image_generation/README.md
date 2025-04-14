@@ -3,13 +3,24 @@
 ## Overview
 The `run.sh` script is a simple Bash script designed to execute the `stable_diffusion_app.py` FastAPI application. This application provides endpoints for generating images using the Stable Diffusion 2.1 model, dynamically switching models, and performing health checks.
 
+## Configuration
+The application's behavior is configured via settings in `src/macro.py`:
+
+*   `MODEL_PATH_FOLDER`:  Directory containing the diffusion models.
+*   `DIFFUSION_MODEL`:  Name of the diffusion model to use.
+*   `PIPELINE_MAPPING`:  Specifies the pipeline for each model.
+*   `SCHEDULER_MAPPING`:  Specifies the scheduler for each model.
+
+Modify these settings in `src/macro.py` to adjust the application's behavior.
+
 ## Running the Application
 To start the application, follow these steps:
 
 1. **Navigate to the Script Directory**:
     Open a terminal and navigate to the directory containing the `run.sh` script:
     ```bash
-    cd /home/learner03/workspace/intel-gaudi-lab/experimentals/image_generation
+    cd experimentals/image_generation
+
     ```
 
 2. **Make the Script Executable** (if not already):
