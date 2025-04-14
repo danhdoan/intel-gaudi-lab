@@ -12,14 +12,13 @@ def process_video(frames, fps: int) -> str:
     """Convert a list of PIL Image frames into a base64 encoded MP4 video.
 
     Args:
+    ----
         frames (list): A list of PIL Image frames to be converted into a video.
         fps (int): Frames per second for the output video.
 
     Returns:
+    -------
         str: A base64 encoded string representing the MP4 video.
-
-    Raises:
-        ValueError: If no frames are provided.
 
     """
     if not frames:
@@ -30,9 +29,7 @@ def process_video(frames, fps: int) -> str:
     height, width, _ = first_frame.shape
 
     # Use BytesIO to capture video in memory
-    temp_path = (
-        "temp_output.mp4"  # OpenCV does not support writing to memory directly
-    )
+    temp_path = "temp_output.mp4"
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(temp_path, fourcc, fps, (width, height))
 

@@ -1,4 +1,4 @@
-"""FastAPI application for generating images using Stable Diffusion 2.1."""
+"""FastAPI application for image-to-video generation using Stable Diffusion."""
 
 import json
 import os
@@ -83,6 +83,7 @@ async def generate_response(
         guidance_scale=request.guidance_scale,
         negative_prompt=request.negative_prompt,
         num_frames=request.nums_frames,
+        num_videos_per_prompt=request.nums_video_per_prompt,
     )
     video_bytes = []
     for i, frames in enumerate(output_video.frames):
@@ -113,4 +114,4 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8008)

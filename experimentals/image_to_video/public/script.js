@@ -36,14 +36,15 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
         guidance_scale: guidanceScale,
         seed,
         nums_frames: numFramesPerVideo,
-        fps
+        fps,
+        num_video_per_prompt: numVideosPerPrompt,
     };
 
     formData.append("request_data", JSON.stringify(requestData));
     formData.append("image", imageFile);
 
     try {
-        const response = await fetch("http://172.16.20.54:8000/generate", {
+        const response = await fetch("http://172.16.20.54:8008/generate", {
             method: "POST",
             body: formData,
         });
@@ -57,13 +58,16 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
             alert("No video generated!");
             return;
         }
-        for (const base64 of videoBase64) {
-            const video = document.createElement("video");
-            console.log(base64);
-            video.controls = true;
-            video.src = `data:video/mp4;base64,${base64}`;
-            video.classList.add("generated-video");
-            imageContainer.appendChild(video);
+        for (let i = 0; i < videoBase64.length; i++) {
+            const base64 = videoBase64[i];
+            // Create a download link for each video
+            const downloadLink = document.createElement("a");
+            downloadLink.href = `data:video/mp4;base64,${base64}`;
+            downloadLink.download = `video_${i + 1}.mp4`; // Naming each video
+            downloadLink.style.display = 'none'; // Hide the link
+            document.body.appendChild(downloadLink); // Append to body (required for click)
+            downloadLink.click(); // Programmatically click the link to trigger download
+            document.body.removeChild(downloadLink); // Remove the link after download
         }
         imageContainer.classList.remove("hidden");
     } catch (error) {

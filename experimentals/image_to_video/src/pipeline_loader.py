@@ -1,8 +1,7 @@
 """Load the pipeline for Stable Diffusion models.
 
-This module provides functions to load the appropriate
-pipeline and scheduler for different Stable Diffusion models
-based on the model name.
+This module contains the function to load the pipeline for
+Stable Diffusion models using the Optimum library.
 """
 
 from optimum.habana.diffusers import GaudiI2VGenXLPipeline

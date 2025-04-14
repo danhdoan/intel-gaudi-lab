@@ -28,7 +28,7 @@ class GenerateRequest(BaseModel):
     negative_prompt: str | None = None
     num_inference_steps: int = 30
     nums_frames: int = 30
-    num_video_per_prompt: int = 1
+    nums_video_per_prompt: int = 1
     batch_size: int = 1
     guidance_scale: float = 7.5
     fps: int = 7
