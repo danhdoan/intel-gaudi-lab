@@ -2,6 +2,15 @@
 
 This application uses Stable Diffusion to generate videos from input images.
 
+## Configuration
+
+The application uses the following environment variables (defined in `src/macro.py`):
+
+-   `IMAGE_TO_VIDEO_MODEL`: The name of the Stable Diffusion model to use.
+-   `MODEL_PATH_FOLDER`: The directory where the model is stored.
+
+These can be modified directly in `src/macro.py` or set as environment variables.
+
 ## Running the Application
 
 The application can be run using the provided `run_app.sh` script. This script executes the `image_to_video_generation_app.py` file, which starts the FastAPI server.
@@ -19,6 +28,14 @@ The application can be run using the provided `run_app.sh` script. This script e
     ```
 
     This will start the FastAPI server, by default on `0.0.0.0:8008`.
+
+## Health Check
+
+A health check endpoint is available at `/health`.  It returns a JSON response with the status of the service.
+
+```bash
+curl http://localhost:8008/health
+```
 
 ## Interacting with the Application
 
@@ -42,23 +59,6 @@ curl -X POST -F 'request_data={"prompt": "a cat", "seed": 42, "num_inference_ste
 ```
 
 The response will be a JSON object containing the generated video data.  See `src/type.py` for the `GenerateResponse` data model.
-
-## Configuration
-
-The application uses the following environment variables (defined in `src/macro.py`):
-
--   `IMAGE_TO_VIDEO_MODEL`: The name of the Stable Diffusion model to use.
--   `MODEL_PATH_FOLDER`: The directory where the model is stored.
-
-These can be modified directly in `src/macro.py` or set as environment variables.
-
-## Health Check
-
-A health check endpoint is available at `/health`.  It returns a JSON response with the status of the service.
-
-```bash
-curl http://localhost:8008/health
-```
 
 ## Notes
 
