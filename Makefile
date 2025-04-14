@@ -43,20 +43,40 @@ lint:
 
 # * DOCKER COMMANDS *
 
-.PHONY: up
-up:
+# ==============================================================================
+
+.PHONY: image
+image:
 	@if [ ! -f .env ]; then \
-		echo "WARNING: .env file does not exist! 'example.env' copied to '.env'. Please update the configurations in the .env file running this target."; \
+		echo "WARNING: .env file not existed! Creating '.env' from sample 'example.env' file..."; \
 		cp example.env .env; \
+		echo "Please update the configurations in the '.env' file for this repo."; \
         exit 1; \
 	fi
 
-	@if [[ ! "$(docker images -q ${DOCKER_IMAGE_NAME})" ]]; then \
-		echo "Building '${DOCKER_IMAGE_NAME}' image for this application..."; \
-		docker build --build-arg WORKING_DIR=${WORKING_DIR} -t ${DOCKER_IMAGE_NAME} .; \
+	@echo "Building '${DOCKER_IMAGE_NAME}' image for this application..."
+	@docker build \
+		--build-arg WORKING_DIR=${WORKING_DIR} \
+		-t ${DOCKER_IMAGE_NAME} \
+		-f ./Dockerfile .
+
+# ==============================================================================
+
+.PHONY: up
+up:
+	@if [ ! -f .env ]; then \
+		echo "WARNING: .env file not existed! Creating '.env' from sample 'example.env' file..."; \
+		cp example.env .env; \
+		echo "Please update the configurations in the '.env' file for this repo."; \
+        exit 1; \
 	fi
 
-	docker compose up -d
+	@echo "Booting from '${DOCKER_IMAGE_NAME}' image...";
+	@if docker compose up -d; then \
+		echo "App Container Booted!"; \
+	else \
+		echo "Booting failed, please run 'make image' command before creating app container."; \
+	fi
 
 # ==============================================================================
 
@@ -67,6 +87,13 @@ down:
 		echo "Terminating ${DOCKER_CONTAINER} container..."; \
 		docker rm ${DOCKER_CONTAINER}; \
 	fi
+
+# ==============================================================================
+
+.PHONY: clean-image
+clean-image:
+	@echo "Remove ${DOCKER_IMAGE_NAME} built image."
+	docker rmi ${DOCKER_IMAGE_NAME}
 
 # ==============================================================================
 
