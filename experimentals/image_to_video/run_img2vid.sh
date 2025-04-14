@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python3 experimentals/stable_diffusion/image_to_video_generation.py \
+python3 experimentals/image_to_video/image_to_video_generation.py \
 	--model_path "models/ali-vilab/i2vgen-xl" \
 	--use_habana \
 	--use_hpu_graphs \

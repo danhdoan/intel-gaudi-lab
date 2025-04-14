@@ -38,3 +38,4 @@ sentencepiece
 # For Web-Development
 fastapi
 uvicorn
+python-multipart
