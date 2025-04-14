@@ -141,13 +141,13 @@ async def generate_response(
 # ====================================================================
 
 
-app.mount("/", StaticFiles(directory="src/public", html=True), name="static")
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 
 @app.get("/")
 async def root():
     """Serve the index.html file."""
-    with open(os.path.join("src/public/index.html", "index.html")) as file:
+    with open(os.path.join("public/index.html", "index.html")) as file:
         return HTMLResponse(content=file.read())
 
 
