@@ -1,12 +1,10 @@
 """FastAPI application for generating images using Stable Diffusion 2.1."""
 
 import base64
-import os
 from io import BytesIO
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from optimum.habana import utils as habana_utils
 from src.macro import DIFFUSION_MODEL, MODEL_PATH_FOLDER
@@ -141,14 +139,7 @@ async def generate_response(
 # ====================================================================
 
 
-app.mount("/", StaticFiles(directory="src/public", html=True), name="static")
-
-
-@app.get("/")
-async def root():
-    """Serve the index.html file."""
-    with open(os.path.join("src/public/index.html", "index.html")) as file:
-        return HTMLResponse(content=file.read())
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 
 # ====================================================================
