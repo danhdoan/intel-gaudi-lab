@@ -1,41 +1,49 @@
 # data processing deps
-numpy<2
-pandas
+numpy==1.23.5
+pandas==2.0.1
+
+# deeplearning deps
+torch==2.6.0
+torchvision==0.21.0
 
 # Python file formater and linter
-black
-ruff
+black==24.10.0
+ruff==0.7.3
 
 # pre-commit
-pre-commit
+pre-commit==4.0.1
 
 # for reading YAML configuration
-PyYAML
+PyYAML==6.0
 
 # for testing
-pytest
-pytest-benchmark
+pytest==8.3.3
+pytest-benchmark==5.1.0
 
 # progress bar
-tqdm
+tqdm==4.67.1
 
 # for deps build
-setuptools
-wheel
+setuptools==75.1.0
+wheel==0.44.0
 
 # for optimum-habana
 optimum-habana @ git+https://github.com/huggingface/optimum-habana.git
-huggingface_hub[hf_xet]
+huggingface_hub[hf_xet]>=0.30.1
 
 # for DeepSpeed
 deepspeed @ git+https://github.com/HabanaAI/DeepSpeed.git@1.20.0
 
 # for Stable Diffusion
-opencv-python
-compel
-sentencepiece
+opencv-python==4.11.0.86
+compel==2.0.3
+sentencepiece==0.2.0
 
-# For Web-Development
-fastapi
-uvicorn
-python-multipart
+# for Web-Development
+fastapi==0.115.12
+uvicorn==0.34.0
+python-multipart==0.0.20
+
+# other
+py-cpuinfo==9.0.0
+packaging==24.2
