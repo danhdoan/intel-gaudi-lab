@@ -3,18 +3,24 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from src.process_image import image_to_base64
 from src.type import GenerateRequest, GenerateResponse
 
-from libs.generative_ai.image_generation.stable_diffusion.gaudi_inference_pipeline import (  # noqa
+from libs.generative_ai.image_generation.stable_diffusion import (
     GaudiStableDiffusionInferencePipeline,
-)  # noqa: E501
+)
+from libs.utils.image_utils import image_to_base64
 
 # ====================================================================
 
 
 app = FastAPI()
 
+ALLOWED_MODELS = (
+    "stable-diffusion-3-m-d",
+    "stable-diffusion-2.1",
+    "stable-diffusion-2-base",
+    "stable-diffusion-xl-base-1.0",
+)
 
 # ====================================================================
 
@@ -57,13 +63,7 @@ async def change_model(model_name: str) -> dict:
         dict: A dictionary indicating the status of the operation.
 
     """
-    allowed_models = [
-        "stable-diffusion-3-m-d",
-        "stable-diffusion-2.1",
-        "stable-diffusion-2-base",
-        "stable-diffusion-xl-base-1.0",
-    ]
-    if model_name not in allowed_models:
+    if model_name not in ALLOWED_MODELS:
         return {"status": "error", "message": "Invalid model name"}
 
     app.state.pipeline.change_model(model_name=model_name)
