@@ -6,5 +6,4 @@ WORKDIR /${WORKING_DIR}
 
 COPY . /${WORKING_DIR}/
 
-# RUN pip install --no-cache-dir .
-RUN echo "Hehe"
+RUN pip install --no-cache-dir .
