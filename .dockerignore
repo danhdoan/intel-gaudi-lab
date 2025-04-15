@@ -8,6 +8,8 @@ output
 data
 .graph_dumps
 logs
+experimentals
+scripts
 
 # Environments
 .venv

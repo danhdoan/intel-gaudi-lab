@@ -93,7 +93,7 @@ down:
 .PHONY: clean-image
 clean-image:
 	@echo "Remove ${DOCKER_IMAGE_NAME} built image."
-	docker rmi ${DOCKER_IMAGE_NAME}
+	@docker rmi ${DOCKER_IMAGE_NAME}
 
 # ==============================================================================
 
