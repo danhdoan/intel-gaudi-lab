@@ -3,7 +3,6 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
     const negativePrompt = document.getElementById("negativePrompt").value.trim();
     const imageInput = document.getElementById("image");
     const loading = document.getElementById("loading");
-    const imageContainer = document.getElementById("imageContainer");
 
     const seed = parseInt(document.getElementById("seed").value) || 42;
     const guidanceScale = parseFloat(document.getElementById("guidance").value) || 7.5;
@@ -25,9 +24,8 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
     const imageFile = imageInput.files[0];
 
     loading.classList.remove("hidden");
-    imageContainer.classList.add("hidden");
-    imageContainer.innerHTML = "";
 
+    console.log(`${numVideosPerPrompt}`)
     const formData = new FormData();
     const requestData = {
         prompt,
@@ -39,6 +37,7 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
         fps,
         num_video_per_prompt: numVideosPerPrompt,
     };
+    console.log(requestData);
 
     formData.append("request_data", JSON.stringify(requestData));
     formData.append("image", imageFile);
@@ -69,7 +68,6 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
             downloadLink.click(); // Programmatically click the link to trigger download
             document.body.removeChild(downloadLink); // Remove the link after download
         }
-        imageContainer.classList.remove("hidden");
     } catch (error) {
         console.error("Error:", error);
         alert("Error generating video!");
