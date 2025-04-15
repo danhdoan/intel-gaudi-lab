@@ -9,7 +9,7 @@ from optimum.habana.diffusers import (
     GaudiStableVideoDiffusionPipeline,
     GaudiEulerDiscreteScheduler
 )
-from optimum.habana.utils import set_seed
+from optimum.habana import utils as habana_utils
 
 # ==============================================================================
 
@@ -270,7 +270,7 @@ def save_outputs(outputs, args):
 def app(args):
     """Perform main logic."""
     os.makedirs(args.output_path, exist_ok=True)
-    set_seed(args.seed)
+    habana_utils.set_seed(args.seed)
 
     pipeline = create_pipeline(args)
     input_images = load_input_images(args.image_path)
