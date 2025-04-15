@@ -1,9 +1,11 @@
 """Stable Diffusion Inference Pipeline for Gaudi."""
 
+import os
+
 from optimum.habana import utils as habana_utils
 
-from .macro import MODEL_PATH_FOLDER
 from .pipeline_loader import load_pipeline
+from .registry import MODEL_PATH_FOLDER
 
 # ====================================================================
 
@@ -32,7 +34,10 @@ class GaudiStableDiffusionInferencePipeline:
             None
 
         """
-        model_path = MODEL_PATH_FOLDER + "/" + model_name
+        model_path = os.path.join(
+            MODEL_PATH_FOLDER,
+            model_name,
+        )
         self.pipe = load_pipeline(
             model_path,
             use_habana=use_habana,
@@ -107,8 +112,12 @@ class GaudiStableDiffusionInferencePipeline:
 
         """
         del self.pipe
-        self.__init__(
-            model_name=model_name,
+        model_path = os.path.join(
+            MODEL_PATH_FOLDER,
+            model_name,
+        )
+        self.pipe = load_pipeline(
+            model_path,
             use_habana=use_habana,
             use_hpu_graphs=use_hpu_graphs,
             gaudi_config=gaudi_config,

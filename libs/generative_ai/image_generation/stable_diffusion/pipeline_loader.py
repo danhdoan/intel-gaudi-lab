@@ -7,7 +7,7 @@ based on the model name.
 
 from diffusers import DiffusionPipeline, SchedulerMixin
 
-from .macro import PIPELINE_MAPPING, SCHEDULER_MAPPING
+from .registry import PIPELINE_MAPPING, SCHEDULER_MAPPING
 
 # ====================================================================
 
