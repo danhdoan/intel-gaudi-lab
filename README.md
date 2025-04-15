@@ -5,28 +5,33 @@ Experiments and optimizations with Intel Gaudi for AI training and inference.
 This project explores training and deployment of AI models on Intel Gaudi hardware with *habana* framework.
 
 ## II. Features
-- **Image to Video Generation** <br/>
-    🗓️ *Released:* April 11, 2025 <br/>
-    🔗 *Link:* [image_to_video](experimentals/image_to_video) <br/>
+- **Image to Video Generation**
+
+    🗓️ *Released:* April 11, 2025
+
+    🔗 *Link:* [image_to_video](experimentals/image_to_video)
+
     <table>
-    <tr>
-      <th> Resource Image </th>
-      <th> Generated Video </th>
-    </tr>
-    <tr>
-    <td>
-      <img src="assets/img2v_src.png" alt="Image to Video Demo" width="400"/> <br/>
-    </td>
-    <td>
-      <img src="assets/img2v_demo.gif" alt="Image to Video Demo" width="400"/> <br/>
-    </td>
-    </tr>
+      <tr>
+        <td>
+          <img src="assets/img2v_src.png" alt="Image to Video Demo" width="400"/>
+          <sub><i>Resource Image</i></sub>
+        </td>
+        <td>
+          <img src="assets/img2v_demo.gif" alt="Image to Video Demo" width="400"/>
+          <sub><i>Generated Video</i></sub>
+        </td>
+      </tr>
     </table>
 
-- **Image Generation** <br/>
-    🗓️ *Released:* April 08, 2025 <br/>
-    🔗 *Link:* [image_generation](experimentals/image_generation) <br/>
-    <img src="assets/img_gen_demo.png" alt="Image Generation Demo" width="400"/> <br/>
+- **Image Generation**
+
+    🗓️ *Released:* April 08, 2025
+
+    🔗 *Link:* [image_generation](experimentals/image_generation)
+
+    <img src="assets/img_gen_demo.png" alt="Image Generation Demo" width="400"/>
+
     <sub><i>Prompt: "Sailing ship floating gently in a sunflower field painting by Van Gogh"</i></sub>
 
 ## III. Installation
