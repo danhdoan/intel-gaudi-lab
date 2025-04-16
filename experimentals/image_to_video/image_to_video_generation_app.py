@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from optimum.habana import utils as habana_utils
 from PIL import Image
-from src.macro import IMAGE_TO_VIDEO_MODEL, MODEL_PATH_FOLDER
 from src.pipeline_loader import load_pipeline
 from src.process_video import process_video
+from src.registry import IMAGE_TO_VIDEO_MODEL, MODEL_PATH_FOLDER
 from src.type import GenerateRequest, GenerateResponse
 
 # ====================================================================

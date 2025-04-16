@@ -25,7 +25,6 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
 
     loading.classList.remove("hidden");
 
-    console.log(`${numVideosPerPrompt}`)
     const formData = new FormData();
     const requestData = {
         prompt,
@@ -37,7 +36,6 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
         fps,
         num_video_per_prompt: numVideosPerPrompt,
     };
-    console.log(requestData);
 
     formData.append("request_data", JSON.stringify(requestData));
     formData.append("image", imageFile);
