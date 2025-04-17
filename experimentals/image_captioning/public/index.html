@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Caption Generator</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Caption Generator</h1>
+
+        <!-- Flexbox Layout for Config and Prompt Containers -->
+        <div class="flex-container">
+            <div class="config-container">
+                <img id="preview" class="hidden" style="max-width: 300px; margin-top: 10px;" />
+
+                <h2>Input Image</h2>
+                <div class="input-group">
+                    <label for="image">Image:</label>
+                    <input type="file" id="image" accept="image/*">
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button id="generateBtn">Caption Image</button>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden">🔄 Captioning...</div>
+        <!-- Generated Text-->
+        <div id="output" class="hidden">
+            <h2>Generated Text</h2>
+            <p id="generatedText"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
