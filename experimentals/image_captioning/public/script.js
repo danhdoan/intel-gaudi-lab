@@ -109,6 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const file = e.dataTransfer.files[0];
         if (file) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
+
             processFile(file);
         }
     });
@@ -155,14 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageInput.files[0]) {
                 formData.append('image', imageInput.files[0]);
             }
-
-            // // Simulate server delay
-            // await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // // Use fake data instead of server request
-            // const data = {
-            //     answer: "A beautiful scenic landscape with mountains in the background and a serene lake reflecting the sky."
-            // };
             const response = await fetch('http://172.16.20.54:8006/generate', {
                 method: 'POST',
                 body: formData
