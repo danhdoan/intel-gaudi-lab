@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Caption Generator</title>
+    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Caption Generator</h1>
+            <p class="subtitle">Let your photo speak — the AI will write its story</p>
+        </header>
+
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                        <line x1="16" y1="5" x2="22" y2="5"></line>
+                        <line x1="19" y1="2" x2="19" y2="8"></line>
+                        <circle cx="9" cy="9" r="2"></circle>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                    </svg>
+                </div>
+                <h3>Drop your image here</h3>
+                <p>or</p>
+                <label for="image" class="upload-btn">Browse Files</label>
+                <input type="file" id="image" accept="image/*" hidden>
+            </div>
+
+            <div class="preview-container hidden" id="previewContainer">
+                <div class="preview-header">
+                    <h3>Image Preview</h3>
+                    <button class="change-btn" id="changeImageBtn">Change Image</button>
+                </div>
+                <div class="image-preview">
+                    <img id="preview" src="#" alt="Preview">
+                </div>
+            </div>
+
+            <button id="generateBtn" class="generate-btn" disabled>Generate Caption</button>
+
+            <div id="loading" class="loading-container hidden">
+                <div class="spinner"></div>
+                <p>Generating your caption...</p>
+            </div>
+
+            <div id="output" class="result-container hidden">
+                <h3>Generated Caption</h3>
+                <div class="caption-box">
+                    <p id="generatedText"></p>
+                    <button id="copyBtn" class="copy-btn" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by Enouvo AI</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
