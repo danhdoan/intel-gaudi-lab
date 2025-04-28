@@ -1,7 +1,7 @@
 #bin/bash
 
 python3 gaudi_spawn.py --use_deepspeed \
---world_size 8 run_generation.py \
+--world_size 8 server.py \
 --model_name_or_path "/intel-gaudi-lab/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B" \
 --bf16 \
 --trim_logits \
