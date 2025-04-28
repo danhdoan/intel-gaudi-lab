@@ -29,12 +29,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configure rank of process
+RANK = int(os.environ.get("RANK", 0))
+PORT = 8000 + RANK
+os.environ["HABANA_VISIBLE_DEVICES"] = str(RANK)
+device = torch.device(f"hpu:{RANK}")
+
 adapt_transformers_to_gaudi()
-# torch._C._set_math_sdp_allow_fp16_bf16_reduction(True)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
+MODEL_PATH = os.environ.get("MODEL_PATH")
 
 class TextGenerator:
     """Handles text generation using a language model optimized for HPUs."""
@@ -71,31 +76,34 @@ class TextGenerator:
             self.tokenizer.padding_side = "left"
 
         # Ensure padding token is properly set
-        if self.tokenizer.pad_token is None:
-            if self.tokenizer.eos_token is not None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-                logger.info(f"Setting to eos_token: {self.tokenizer.pad_token}")
-            else:
-                # Fallback to a commonly used pad token if needed
-                self.tokenizer.pad_token = self.tokenizer.eos_token = "</s>"
-                logger.info(
-                    "No eos_token, setting pad_token and eos_token to '</s>'"
-                )
-
-        # Ensure the model's generation config has the pad token id
         if self.model.generation_config.pad_token_id is None:
+            if isinstance(self.model.generation_config.eos_token_id, int):
+                self.model.generation_config.pad_token_id = (
+                    self.model.generation_config.eos_token_id
+                )
+            elif isinstance(self.model.generation_config.eos_token_id, list):
+                self.model.generation_config.pad_token_id = (
+                    self.model.generation_config.eos_token_id[0]
+                )
+        self.tokenizer.bos_token_id = self.model.generation_config.bos_token_id
+        if isinstance(self.model.generation_config.eos_token_id, int):
+            self.tokenizer.eos_token_id = self.model.generation_config.eos_token_id
+        elif isinstance(self.generation_config.eos_token_id, list):
+            self.tokenizer.eos_token_id = self.model.generation_config.eos_token_id[0]
+        self.tokenizer.pad_token_id = self.model.generation_config.pad_token_id
+        self.tokenizer.pad_token = self.tokenizer.decode(self.tokenizer.pad_token_id)
+        self.tokenizer.eos_token = self.tokenizer.decode(self.tokenizer.eos_token_id)
+        self.tokenizer.bos_token = self.tokenizer.decode(self.tokenizer.bos_token_id)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.generation_config.pad_token_id = (
-                self.tokenizer.pad_token_id
-            )
-            logger.info(
-                f"Setting model generation config pad_token_id to "
-                f"{self.tokenizer.pad_token_id}"
+                self.model.generation_config.eos_token_id
             )
 
-        # Move model to device
         self.model = self.model.eval().to("hpu")
+        self.model = torch.compile(
+            self.model, backend="hpu_backend", options={"keep_input_mutations": True})
 
-        # Wrap model with HPU graphs
         from habana_frameworks.torch.hpu import wrap_in_hpu_graph
 
         self.model = wrap_in_hpu_graph(self.model)
@@ -148,7 +156,6 @@ class TextGenerator:
                 logger.error(
                     f"Error during warm-up iteration {i+1}: {e}", exc_info=True
                 )
-                # Decide if we should stop warm-up or continue
                 break  # Stop warm-up on error
 
         logger.info("Model warm-up completed")
@@ -190,19 +197,11 @@ class TextGenerator:
                     input_tokens[t] = input_tokens[t].to("hpu")
 
             # Generate text using no_grad context for better performance
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **input_tokens,
-                    max_new_tokens=max_new_tokens,
-                    use_cache=True,
-                    lazy_mode=True,
-                    hpu_graphs=True,
-                    trim_logits=True,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                ).cpu()
-                # Synchronize to ensure completion
-                torch.hpu.synchronize()
-
+            
+            outputs=[]
+            for token in self.generate_from_model(max_new_tokens, input_tokens):
+                outputs.append(token)
+                print(token)
             # Decode generated text
             generated_text_list = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True
@@ -230,18 +229,30 @@ class TextGenerator:
             logger.error(f"Error during generation: {str(e)}", exc_info=True)
             return f"Error during generation: {str(e)}"
 
+    def generate_from_model(self,max_new_tokens, input_tokens):
+        with torch.no_grad():
+            for token in self.model.generate(
+                **input_tokens,
+                max_new_tokens=max_new_tokens,
+                use_cache=True,
+                lazy_mode=True,
+                hpu_graphs=True,
+                trim_logits=True,
+                pad_token_id=self.tokenizer.pad_token_id,
+            ).cpu():
+                yield token
+            # Synchronize to ensure completion
+            torch.hpu.synchronize()
 
 # Initialize FastAPI app
 app = FastAPI()
 
 # Mount static files using absolute path
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory=TEMPLATES_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # Initialize the generator
-generator = TextGenerator(
-    "/intel-gaudi-lab/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
-)
+generator = TextGenerator(MODEL_PATH)
 
 
 class GenerationRequest(BaseModel):
@@ -305,4 +316,4 @@ async def generate_text(request: GenerationRequest):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
