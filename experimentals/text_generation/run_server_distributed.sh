@@ -2,8 +2,8 @@
 
 # ==============================================================================
 
-NUM_WORLD_SIZE=${1:-4}
-export MODEL_PATH=${2:-"/intel-gaudi-lab/models/text2text-models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B"}
+NUM_WORLD_SIZE=${1:-8}
+export MODEL_PATH=${2:-"/intel-gaudi-lab/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B"}
 
 # ==============================================================================
 

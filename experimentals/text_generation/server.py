@@ -50,7 +50,8 @@ os.environ["HABANA_VISIBLE_DEVICES"] = str(RANK)
 
 # Configure model and device
 MODEL_PATH = os.environ.get("MODEL_PATH")
-DEVICE = torch.device(f"hpu:{RANK}")
+
+DEVICE = torch.device("hpu")
 adapt_transformers_to_gaudi()
 
 # Configure web server resources
@@ -230,10 +231,18 @@ class TextGenerator:
                     input_tokens[t] = input_tokens[t].to(DEVICE)
 
             # Generate text
-            outputs = []
-            for token in self.generate_from_model(max_new_tokens, input_tokens):
-                outputs.append(token)
-                print(token)
+            outputs = self.model.generate(
+                **input_tokens,
+                max_new_tokens=max_new_tokens,
+                use_cache=True,
+                lazy_mode=True,
+                hpu_graphs=True,
+                trim_logits=True,
+                pad_token_id=self.tokenizer.pad_token_id,
+            ).cpu()
+            # Synchronize to ensure completion
+            torch.hpu.synchronize()
+
             # Decode generated text
             generated_text_list = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True
@@ -254,30 +263,11 @@ class TextGenerator:
                 f"Text generated in {end_time - start_time:.2f} seconds"
             )
 
-            # Return raw text without any formatting
             return generated_text_list[0]
 
         except Exception as e:
             logger.error(f"Error during generation: {str(e)}", exc_info=True)
             return f"Error during generation: {str(e)}"
-
-    def generate_from_model(self, max_new_tokens, input_tokens):
-        """Generate output from model."""
-        # Using no_grad context for better performance
-        with torch.no_grad():
-            for token in self.model.generate(
-                **input_tokens,
-                max_new_tokens=max_new_tokens,
-                use_cache=True,
-                lazy_mode=True,
-                hpu_graphs=True,
-                trim_logits=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-            ).cpu():
-                yield from token
-
-            # Synchronize to ensure completion
-            torch.hpu.synchronize()
 
 
 # ==============================================================================
