@@ -13,14 +13,16 @@ __status__ = "development"
 # ==============================================================================
 
 
+import json
 import logging
 import os
 import time
 
+import habana_frameworks.torch.core as htcore
 import torch
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from optimum.habana.transformers.modeling_utils import (
     adapt_transformers_to_gaudi,
@@ -78,11 +80,7 @@ class TextGenerator:
         self.initialized = False
 
     def initialize(self):
-        """Load and prepare the model and tokenizer for text generation.
-
-        This method loads the model and tokenizer, configures padding tokens,
-        moves the model to the HPU device, and performs warm-up.
-        """
+        """Load and prepare the model and tokenizer for text generation."""
         if self.initialized:
             return
 
@@ -106,16 +104,17 @@ class TextGenerator:
                 self.model.generation_config.pad_token_id = (
                     self.model.generation_config.eos_token_id[0]
                 )
+
+        # Configure tokenizer
         self.tokenizer.bos_token_id = self.model.generation_config.bos_token_id
-        if isinstance(self.model.generation_config.eos_token_id, int):
-            self.tokenizer.eos_token_id = (
-                self.model.generation_config.eos_token_id
-            )
-        elif isinstance(self.generation_config.eos_token_id, list):
-            self.tokenizer.eos_token_id = (
-                self.model.generation_config.eos_token_id[0]
-            )
+        self.tokenizer.eos_token_id = (
+            self.model.generation_config.eos_token_id
+            if isinstance(self.model.generation_config.eos_token_id, int)
+            else self.model.generation_config.eos_token_id[0]
+        )
         self.tokenizer.pad_token_id = self.model.generation_config.pad_token_id
+
+        # Set special tokens
         self.tokenizer.pad_token = self.tokenizer.decode(
             self.tokenizer.pad_token_id
         )
@@ -125,12 +124,15 @@ class TextGenerator:
         self.tokenizer.bos_token = self.tokenizer.decode(
             self.tokenizer.bos_token_id
         )
+
+        # Fallback for pad token
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.generation_config.pad_token_id = (
                 self.model.generation_config.eos_token_id
             )
 
+        # Prepare model
         self.model = self.model.eval().to(DEVICE)
         self.model = torch.compile(
             self.model,
@@ -138,8 +140,8 @@ class TextGenerator:
             options={"keep_input_mutations": True},
         )
 
+        # Wrap model in HPU graph
         from habana_frameworks.torch.hpu import wrap_in_hpu_graph
-
         self.model = wrap_in_hpu_graph(self.model)
 
         # Warm up the model
@@ -149,18 +151,14 @@ class TextGenerator:
         logger.info("Model initialization completed")
 
     def warm_up(self, num_iterations=3):
-        """Warm up the model by running inference multiple times.
-
-        Args:
-            num_iterations: Number of warm-up iterations to perform
-
-        """
+        """Warm up the model by running inference multiple times."""
         logger.info("Starting model warm-up...")
         warm_up_prompt = "This is a warm-up run to optimize the model."
 
         for i in range(num_iterations):
             try:
                 logger.info(f"Warm-up iteration {i+1}/{num_iterations}")
+
                 # Tokenize input
                 input_tokens = self.tokenizer(
                     warm_up_prompt, return_tensors="pt", padding=True
@@ -172,8 +170,7 @@ class TextGenerator:
                         input_tokens[t] = input_tokens[t].to(DEVICE)
 
                 # Generate text
-                with torch.no_grad():  # Use no_grad for inference/warmup
-                    # Run model generation but don't use outputs in warm-up
+                with torch.no_grad():
                     self.model.generate(
                         **input_tokens,
                         max_new_tokens=10,
@@ -186,25 +183,17 @@ class TextGenerator:
 
                 # Synchronize to ensure completion
                 torch.hpu.synchronize()
+
             except Exception as e:
                 logger.error(
                     f"Error during warm-up iteration {i+1}: {e}", exc_info=True
                 )
-                break  # Stop warm-up on error
+                break
 
         logger.info("Model warm-up completed")
 
     def generate(self, prompt, max_new_tokens=500):
-        """Generate text based on the provided prompt.
-
-        Args:
-            prompt: The input text to base generation on
-            max_new_tokens: Maximum number of new tokens to generate
-
-        Returns:
-            Generated text or error message
-
-        """
+        """Generate text based on the provided prompt."""
         if not self.initialized:
             logger.warning("Generator called before initialization.")
             try:
@@ -217,7 +206,6 @@ class TextGenerator:
                 return "Error: Generator not initialized."
 
         try:
-            # Start time tracking
             start_time = time.time()
 
             # Tokenize input
@@ -240,6 +228,7 @@ class TextGenerator:
                 trim_logits=True,
                 pad_token_id=self.tokenizer.pad_token_id,
             ).cpu()
+
             # Synchronize to ensure completion
             torch.hpu.synchronize()
 
@@ -277,7 +266,18 @@ class GenerationRequest(BaseModel):
     """Request model for text generation API endpoint."""
 
     prompt: str
-    max_new_tokens: int = 500
+    max_new_tokens: int = 100
+    temperature: float = 0.7
+    top_p: float = 0.9
+    streaming: bool = False
+
+
+class GenerationResponse(BaseModel):
+    """Response model for text generation API endpoint."""
+
+    text: str
+    tokens: list[str] | None = None
+    generation_time: float
 
 
 # ==============================================================================
@@ -299,7 +299,6 @@ generator = TextGenerator(MODEL_PATH)
 @app.on_event("startup")
 async def startup_event():
     """Initialize the text generator when the server starts."""
-    # Initialize the generator when the server starts
     try:
         generator.initialize()
     except Exception as e:
@@ -317,36 +316,103 @@ async def read_root(request: Request):
 
 @app.post("/generate")
 async def generate_text(request: GenerationRequest):
-    """Generate text based on the provided prompt.
-
-    Args:
-        request: The generation request containing prompt and parameters
-
-    Returns:
-        JSON response with the generated text or error message
-
-    """
+    """Generate text based on the input prompt."""
     try:
-        # Add timing for API request handling
         start_time = time.time()
 
-        # Generate text
-        output = generator.generate(request.prompt, request.max_new_tokens)
+        # Tokenize input
+        input_tokens = generator.tokenizer(
+            request.prompt,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(DEVICE)
 
-        # Log total API request time
-        end_time = time.time()
-        logger.info(
-            f"Total API request handled in {end_time - start_time:.2f} seconds"
+        async def generate_stream():
+            """Generate text stream for SSE response."""
+            if request.streaming:
+                # For streaming generation
+                generated_tokens = []
+                generated_text = ""
+
+                # Generate one token at a time
+                for _ in range(request.max_new_tokens):
+                    outputs = generator.model.generate(
+                        **input_tokens,
+                        max_new_tokens=1,
+                        use_cache=True,
+                        lazy_mode=True,
+                        hpu_graphs=True,
+                        trim_logits=True,
+                        pad_token_id=generator.tokenizer.pad_token_id,
+                    ).cpu()
+
+                    # Get the new token
+                    new_token = outputs[0][-1].item()
+                    generated_tokens.append(new_token)
+
+                    # Decode the new token
+                    new_text = generator.tokenizer.decode(
+                        [new_token], skip_special_tokens=True
+                    )
+                    generated_text += new_text
+
+                    # Update input for next iteration
+                    input_tokens["input_ids"] = torch.cat([
+                        input_tokens["input_ids"],
+                        torch.tensor([[new_token]], device=DEVICE)
+                    ], dim=1)
+
+                    # Update attention mask
+                    input_tokens["attention_mask"] = torch.cat([
+                        input_tokens["attention_mask"],
+                        torch.tensor([[1]], device=DEVICE)
+                    ], dim=1)
+
+                    # Yield the new token and current text
+                    yield f"data: {json.dumps({'token': new_text,
+                                               'text': generated_text})}\n\n"
+
+                    # Mark the graph as processed
+                    htcore.mark_step()
+
+                # Send final message
+                generation_time = time.time() - start_time
+                yield f"data: {json.dumps({'done': True,
+                'generation_time': generation_time})}\n\n"
+
+            else:
+                # For non-streaming generation
+                outputs = generator.model.generate(
+                    **input_tokens,
+                    max_new_tokens=request.max_new_tokens,
+                    use_cache=True,
+                    lazy_mode=True,
+                    hpu_graphs=True,
+                    trim_logits=True,
+                    pad_token_id=generator.tokenizer.pad_token_id,
+                ).cpu()
+
+                generated_text = generator.tokenizer.decode(
+                    outputs[0], skip_special_tokens=True
+                )
+                generation_time = time.time() - start_time
+
+                yield f"data: {
+                    json.dumps({'text': generated_text,
+                    'generation_time': generation_time})}\n\n"
+
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/event-stream"
         )
 
-        # Check if error occurred
-        if output.startswith("Error:"):
-            return {"status": "error", "message": output}
-        else:
-            return {"status": "success", "output": output}
     except Exception as e:
         logger.error(f"Error during generation: {str(e)}")
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error during generation: {str(e)}"
+        )
 
 
 # ==============================================================================
