@@ -5,7 +5,7 @@ text generation, optimized for Intel Gaudi HPUs.
 """
 
 __author__ = ["Cuong Do", "Nicolas Howard"]
-__email__ = ["cuong.do@enouvo.com", "petit.nicolashoward@gmail.com"]
+__email__ = ["vanlanhdh@gmail.com", "petit.nicolashoward@gmail.com"]
 __date__ = "2025/04/28"
 __status__ = "development"
 
@@ -29,6 +29,7 @@ from optimum.habana.transformers.modeling_utils import (
 )
 from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
 
 # ==============================================================================
 
@@ -64,16 +65,30 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 # ==============================================================================
 
 
+class GenerationRequest(BaseModel):
+    """Request model for text generation API endpoint."""
+
+    prompt: str
+    max_new_tokens: int = 100
+    streaming: bool = False
+
+
+class GenerationResponse(BaseModel):
+    """Response model for text generation API endpoint."""
+
+    text: str
+    tokens: list[str] | None = None
+    generation_time: float
+
+
+# ==============================================================================
+
+
 class TextGenerator:
     """Handles text generation using a language model optimized for HPUs."""
 
     def __init__(self, model_path):
-        """Initialize the text generator.
-
-        Args:
-            model_path: Path to the pre-trained language model
-
-        """
+        """Initialize the text generator."""
         self.model_path = model_path
         self.model = None
         self.tokenizer = None
@@ -158,7 +173,7 @@ class TextGenerator:
         for i in range(num_iterations):
             try:
                 logger.info(f"Warm-up iteration {i+1}/{num_iterations}")
-
+                
                 # Tokenize input
                 input_tokens = self.tokenizer(
                     warm_up_prompt, return_tensors="pt", padding=True
@@ -183,7 +198,7 @@ class TextGenerator:
 
                 # Synchronize to ensure completion
                 torch.hpu.synchronize()
-
+                
             except Exception as e:
                 logger.error(
                     f"Error during warm-up iteration {i+1}: {e}", exc_info=True
@@ -262,27 +277,6 @@ class TextGenerator:
 # ==============================================================================
 
 
-class GenerationRequest(BaseModel):
-    """Request model for text generation API endpoint."""
-
-    prompt: str
-    max_new_tokens: int = 100
-    temperature: float = 0.7
-    top_p: float = 0.9
-    streaming: bool = False
-
-
-class GenerationResponse(BaseModel):
-    """Response model for text generation API endpoint."""
-
-    text: str
-    tokens: list[str] | None = None
-    generation_time: float
-
-
-# ==============================================================================
-
-
 # Initialize FastAPI app
 app = FastAPI()
 
@@ -319,24 +313,24 @@ async def generate_text(request: GenerationRequest):
     """Generate text based on the input prompt."""
     try:
         start_time = time.time()
-
+        
         # Tokenize input
         input_tokens = generator.tokenizer(
             request.prompt,
             return_tensors="pt",
             padding=True,
-            truncation=True
+            truncation=True,
         ).to(DEVICE)
 
-        async def generate_stream():
-            """Generate text stream for SSE response."""
-            if request.streaming:
-                # For streaming generation
-                generated_tokens = []
-                generated_text = ""
-
-                # Generate one token at a time
+        if request.streaming:
+            async def generate_stream():
+                # Initialize generation state
+                current_text = ""
+                current_tokens = []
+                
+                # Generate tokens one at a time
                 for _ in range(request.max_new_tokens):
+                    # Generate next token
                     outputs = generator.model.generate(
                         **input_tokens,
                         max_new_tokens=1,
@@ -346,72 +340,83 @@ async def generate_text(request: GenerationRequest):
                         trim_logits=True,
                         pad_token_id=generator.tokenizer.pad_token_id,
                     ).cpu()
-
-                    # Get the new token
+                    
+                    # Extract and decode new token
                     new_token = outputs[0][-1].item()
-                    generated_tokens.append(new_token)
-
-                    # Decode the new token
-                    new_text = generator.tokenizer.decode(
-                        [new_token], skip_special_tokens=True
+                    current_tokens.append(new_token)
+                    token_text = generator.tokenizer.decode(
+                        [new_token], 
+                        skip_special_tokens=True,
                     )
-                    generated_text += new_text
-
-                    # Update input for next iteration
+                    
+                    # Update current text
+                    current_text += token_text
+                    
+                    # Update input context for next iteration
                     input_tokens["input_ids"] = torch.cat([
                         input_tokens["input_ids"],
-                        torch.tensor([[new_token]], device=DEVICE)
+                        torch.tensor([[new_token]], device=DEVICE),
                     ], dim=1)
-
-                    # Update attention mask
                     input_tokens["attention_mask"] = torch.cat([
                         input_tokens["attention_mask"],
-                        torch.tensor([[1]], device=DEVICE)
+                        torch.tensor([[1]], device=DEVICE),
                     ], dim=1)
-
-                    # Yield the new token and current text
-                    yield f"data: {json.dumps({'token': new_text,
-                                               'text': generated_text})}\n\n"
-
-                    # Mark the graph as processed
+                    
+                    # Prepare and send current state
+                    data = {
+                        'token': token_text,
+                        'text': current_text,
+                    }
+                    sse_message = f"data: {json.dumps(data)}\n\n"
+                    yield sse_message
+                    
+                    # Mark graph step
                     htcore.mark_step()
-
-                # Send final message
+                
+                # Prepare and send completion message
                 generation_time = time.time() - start_time
-                yield f"data: {json.dumps({'done': True,
-                'generation_time': generation_time})}\n\n"
+                final_data = {
+                    'done': True,
+                    'generation_time': generation_time,
+                }
+                final_message = f"data: {json.dumps(final_data)}\n\n"
+                yield final_message
 
-            else:
-                # For non-streaming generation
-                outputs = generator.model.generate(
-                    **input_tokens,
-                    max_new_tokens=request.max_new_tokens,
-                    use_cache=True,
-                    lazy_mode=True,
-                    hpu_graphs=True,
-                    trim_logits=True,
-                    pad_token_id=generator.tokenizer.pad_token_id,
-                ).cpu()
-
-                generated_text = generator.tokenizer.decode(
-                    outputs[0], skip_special_tokens=True
-                )
-                generation_time = time.time() - start_time
-
-                yield f"data: {
-                    json.dumps({'text': generated_text,
-                    'generation_time': generation_time})}\n\n"
-
-        return StreamingResponse(
-            generate_stream(),
-            media_type="text/event-stream"
-        )
+            return StreamingResponse(
+                generate_stream(),
+                media_type="text/event-stream",
+            )
+        
+        else:
+            # Standard non-streaming generation
+            outputs = generator.model.generate(
+                **input_tokens,
+                max_new_tokens=request.max_new_tokens,
+                use_cache=True,
+                lazy_mode=True,
+                hpu_graphs=True,
+                trim_logits=True,
+                pad_token_id=generator.tokenizer.pad_token_id,
+            ).cpu()
+            
+            # Decode full text
+            generated_text = generator.tokenizer.decode(
+                outputs[0],
+                skip_special_tokens=True,
+            )
+            
+            # Return complete response
+            generation_time = time.time() - start_time
+            return GenerationResponse(
+                text=generated_text,
+                generation_time=generation_time,
+            )
 
     except Exception as e:
         logger.error(f"Error during generation: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error during generation: {str(e)}"
+            detail=f"Error during generation: {str(e)}",
         )
 
 
