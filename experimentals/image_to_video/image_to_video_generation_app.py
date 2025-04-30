@@ -1,19 +1,17 @@
 """FastAPI application for image-to-video generation using Stable Diffusion."""
 
 import json
-import os
 from io import BytesIO
 
 import uvicorn
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from optimum.habana import utils as habana_utils
 from PIL import Image
-from src.macro import IMAGE_TO_VIDEO_MODEL, MODEL_PATH_FOLDER
 from src.pipeline_loader import load_pipeline
 from src.process_video import process_video
+from src.registry import IMAGE_TO_VIDEO_MODEL, MODEL_PATH_FOLDER
 from src.type import GenerateRequest, GenerateResponse
 
 # ====================================================================
@@ -70,7 +68,18 @@ async def generate_response(
     request_data: str = Form(...),
     image: UploadFile = File(...),
 ) -> GenerateResponse:
-    """Generate a video from an image using the Stable Diffusion model."""
+    """Generate a video from an image using the Stable Diffusion model.
+
+    Args:
+    ----
+        request_data (str): JSON string containing the generation parameters.
+        image (UploadFile): The input image file.
+
+    Returns:
+    -------
+        GenerateResponse: A response object containing the generated video.
+
+    """
     request = GenerateRequest(**json.loads(request_data))
 
     habana_utils.set_seed(request.seed)
@@ -83,7 +92,7 @@ async def generate_response(
         guidance_scale=request.guidance_scale,
         negative_prompt=request.negative_prompt,
         num_frames=request.nums_frames,
-        num_videos_per_prompt=request.nums_video_per_prompt,
+        num_videos_per_prompt=request.num_video_per_prompt,
     )
     video_bytes = []
     for i, frames in enumerate(output_video.frames):
@@ -101,13 +110,6 @@ async def generate_response(
 
 
 app.mount("/", StaticFiles(directory="public", html=True), name="static")
-
-
-@app.get("/")
-async def root():
-    """Serve the index.html file."""
-    with open(os.path.join("public/index.html", "index.html")) as file:
-        return HTMLResponse(content=file.read())
 
 
 # ====================================================================
